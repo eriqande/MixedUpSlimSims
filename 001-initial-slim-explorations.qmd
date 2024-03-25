@@ -1,0 +1,125 @@
+---
+title: "First Explorations of SLiM and Tree-Seq for data to feed into MixedUpParents"
+format: html
+editor: visual
+engine: knitr
+---
+
+## Setup
+
+In order to get this to work on an M1 mac there are a few things that must be done.
+
+1.  Install a pyslim conda environment within the x86_64 shell.
+
+    ```{sh}
+    #| eval: false
+    mamba create -n pyslim -c conda-forge pyslim
+    ```
+
+    Doing this requires that you have set up conda to work with x86_64. Sadly, pyslim does not install with conda on arm64 because `kastore` is not compiled for that.
+
+2.  Then, you need to have an x86_64 version of R that can run under RStudio. I recommend that you install [`rig`](https://github.com/r-lib/rig) to manage your R installations. Once you have it installed, you can download and install the latest x86_64 version of R like this:
+
+    ```{sh}
+    #| eval: false
+    rig add -a x86_64 release
+    ```
+
+    Then you can make sure that it was installed, and see what its name is by using `rig list`:
+
+    ```{sh}
+    #| eval: false
+    rig list
+        
+    # the output should look something like this:
+    * name        version    aliases
+    ------------------------------------------
+      4.2-arm64   (R 4.2.0)
+    * 4.3-arm64   (R 4.3.3)
+      4.3-x86_64  (R 4.3.3)  release
+    ```
+
+    And from that you can open this RStudio project by navigating to the project directory on your shell and doing:
+
+    ```{sh}
+    #| eval: false
+    rig rstudio 4.3-x86_64 MixedUpParents-slim-sim.Rproj
+    ```
+
+3.  Define the path to your pyslim conda environment, here.
+
+    ```{r}
+    PYSLIM_CONDA <- normalizePath("~/mambaforge-x86_64/envs/pyslim")
+    ```
+
+4.  Finally, make sure that you have all the necessary packages. Especially
+    'tidyverse' and 'reticulate'.
+
+
+With all of that done, we can start working our way through developing the
+simulation.  The following are a series of topics I think will be
+important/relevant, and my attempted solutions to them.
+
+## Recombination and chromosomes
+
+We definitely need multiple chromosomes in here, and we can't just run SLiM
+separately for each chromosome, because they have to live in the same individuals.
+So, we need to model an entire genome with a reasonable per-base recombination
+rate _within_ chromosomes, and a per-base rate of $\frac{1}{2}$ between the
+chromosomes.  The SLiM manual tells how to do that easily.  We can use the
+`fai` file from the genome to get the chromosome lengths.  We read it in here.
+```{r}
+#| message: false
+#| warning: false
+library(tidyverse)
+library(reticulate)
+
+# this is Omyk_v1.0.  We 
+fai <- read_tsv(
+  "inputs/omyV6Chr.fasta.fai", 
+  col_names = c("chrom", "len", "cumul", "X1", "X2")
+  )
+```
+
+We will be able to use that to define recombination points.  
+
+## Forward Simulation
+
+As I think ahead, I suspect that it could be nice to eventually model the fitness
+effects of admixture fraction, etc. in this SLiM framework to assess, for example,
+how much power there is for detecting fitness differences given pedigree data.
+Ultimately, I think it will be more flexible to start out with a non-Wright-Fisher
+population simulation in which the time clicks are years.  
+
+However, for now, let's go with the scenario Jared has coded up: `SLiM-models/wf3.slim`.
+Though we will make some changes.
+
+
+
+## tskit stuff
+
+Let's see if we can do this all within R.
+
+```{r}
+use_condaenv(condaenv = PYSLIM_CONDA)
+
+tskit <- import("tskit")
+pyslim <- import("pyslim")
+msprime <- import("msprime")
+pp <- import("pprint")
+
+ts <- tskit$load("slim_test.trees")
+
+for (tree in iterate(ts$trees())) {
+  print(tree$get_interval())
+}
+
+lapply(boing, function(x) x$get_interval())
+```
+
+```{python}
+
+for u in ts.nodes(order='timeasc'):
+  print(u)
+
+```

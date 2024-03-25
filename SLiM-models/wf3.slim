@@ -1,0 +1,26 @@
+// Keywords: tree-sequence recording, tree sequence recording, migration, dispersal
+
+initialize() {
+	initializeSLiMOptions(keepPedigrees=T); // turn on pedigree tracking; see section 25 of the manual (25.7, pg. 679)
+	defineConstant("L", 1e6); // length of chromosome
+	initializeTreeSeq();
+	initializeMutationRate(0); // zero mutations forward-in-time; will be added by msprime afterwards
+	initializeMutationType("m1", 0.5, "f", 0.0); // neutral mutations, but won't be used anyways
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+}
+1 late() {
+	//make two pops, then a third pop that is the mixture of pops 1 and 2, with ongoing gene flow until the end of the simulation
+	sim.addSubpop("p1", 500); // rainbow trout population
+	sim.addSubpop("p2", 500); // westslope population
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // retains first-gen p1 and p2 individuals to determine genomic region population-of-origin
+	
+	sim.addSubpop("p3", 250);
+	p3.setMigrationRates(c(p1, p2), c(0.95, 0.05)); // population p3 is a mix of p1 and p2 individuals
+}
+10 late() {
+	sim.treeSeqOutput("slim_test.trees"); // after 10 gens of mixing/interbreeding, write out trees
+}
+
+
