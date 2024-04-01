@@ -4,11 +4,6 @@
 
 In order to get this to work on an M1 mac there are a few things that must be done.
 
-1.  Get the package with:
-
-    ```r
-    remotes::install_github("eriqande/MixedUpSlimSims")
-    ```
 
 1.  Install a pyslim conda environment within the x86_64 shell and install bedtools into it as well.
 
@@ -45,7 +40,13 @@ In order to get this to work on an M1 mac there are a few things that must be do
     rig rstudio 4.3-x86_64 MixedUpParents-slim-sim.Rproj
     ```
 
-3.  In your scripts, you must use `reticulate::use_condaenv()` to set the conda environment, after
+3.  Get the package with:
+
+    ```r
+    remotes::install_github("eriqande/MixedUpSlimSims")
+    ```
+
+4.  In your scripts, you must use `reticulate::use_condaenv()` to set the conda environment, after
     you load the package with `library`.  For example, the top of your script should look something
     like:
     
