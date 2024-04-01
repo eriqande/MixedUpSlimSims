@@ -75,7 +75,7 @@ chromosomes.  The SLiM manual tells how to do that easily.  We can use the
 #| warning: false
 library(tidyverse)
 library(reticulate)
-use_condaenv(condaenv = PYSLIM_CONDA)
+reticulate::use_condaenv(condaenv = PYSLIM_CONDA)
 
 # this is Omyk_v1.0.  We 
 fai <- read_tsv(
