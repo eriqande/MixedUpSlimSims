@@ -1,8 +1,10 @@
 ---
 title: "First Explorations of SLiM and Tree-Seq for data to feed into MixedUpParents"
-format: html
-editor: visual
+format: 
+  html:
+    embed-resources: true
 engine: knitr
+
 ---
 
 ## Setup
@@ -16,9 +18,9 @@ In order to get this to work on an M1 mac there are a few things that must be do
     mamba create -n pyslim -c conda-forge pyslim
     ```
 
-    Doing this requires that you have set up conda to work with x86_64. Sadly, pyslim does not install with conda on arm64 because `kastore` is not compiled for that.
+    Doing this requires that you have set up conda to work with x86_64. Sadly, pyslim does not install with conda on arm64 because `kastore` is not compiled for that.  After that, activate the environment and do `pip install tspop`./
 
-2.  Then, you need to have an x86_64 version of R that can run under RStudio. I recommend that you install [`rig`](https://github.com/r-lib/rig) to manage your R installations. Once you have it installed, you can download and install the latest x86_64 version of R like this:
+2.  Then, you need to have an x86_64 version of R that can run under RStudio. I recommend that you install [`rig`](https://github.com/r-lib/rig) to manage your R insreetallations. Once you have it installed, you can download and install the latest x86_64 version of R like this:
 
     ```{sh}
     #| eval: false
@@ -73,15 +75,37 @@ chromosomes.  The SLiM manual tells how to do that easily.  We can use the
 #| warning: false
 library(tidyverse)
 library(reticulate)
+use_condaenv(condaenv = PYSLIM_CONDA)
 
 # this is Omyk_v1.0.  We 
 fai <- read_tsv(
   "inputs/omyV6Chr.fasta.fai", 
   col_names = c("chrom", "len", "cumul", "X1", "X2")
   )
+
+# So, if we wanted to set recombination rate to 1e-9 within chromosomes (I think
+# this might be reasonable within hybrids, but we would want it somewhat higher
+# within the separate species when recapiting) and set it to 1/2 between, we would
+# do:
+bip <- fai %>%
+  select(chrom, len) %>%
+  mutate(
+    ends = cumsum(len),
+    starts = lag(ends, default = -1) + 1
+  )
+
+pts <- sort(c(bip$starts, bip$ends))
+rates <- rep(c(0.5, 1e-9), length.out = length(pts))
+
+# then we can write those out to stick into the SLiM script (will worry
+# about auromatically `glue`-ing it in there later)
+cat(pts[-1], sep = ", ")
+cat("\n\n")
+cat(rates[-1], sep = ", ")
 ```
 
-We will be able to use that to define recombination points.  
+We will be able to use that to define recombination points to demarcate
+chromosomes. 
 
 ## Forward Simulation
 
@@ -92,34 +116,321 @@ Ultimately, I think it will be more flexible to start out with a non-Wright-Fish
 population simulation in which the time clicks are years.  
 
 However, for now, let's go with the scenario Jared has coded up: `SLiM-models/wf3.slim`.
-Though we will make some changes.
+Though we will make some changes.  So far Eric has
+
+-   Added `initializeSex("A");`
+-   Have `sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);`  only
+    into for the founders, but add `sim.treeSeqRememberIndividuals(p3.individuals);`
+    for all the generations that pop3 exists, so that all the relevant individuals
+    are in the tree seq.
+-   Created population p3 at time tick 2 instead of one, because it makes it easier
+    to just grab the founders as the ones around at time 9 (going back from the end).
+-   For testing, I just made a simple 50/50 admixture in the very beginning with
+    no further admixture.  This would be easy to relax.      
+The current state of that script is:
+```{Rcpp filename = "Listing of SLiM-models/wf3.slim"}
+#| eval: false
+#| file: SLiM-models/wf3.slim
+```
+
+We can run it like this:
+```{sh}
+#| output: false
+slim -s 111 SLiM-models/wf3.slim
+```
+
+## Reticulate
+
+I had originally thought that I might be able to do all this stuff
+with the R interface within reticulate for accessing python objects,
+but that does not seem to work very well with tskit objects. So, instead
+I will just see about coding things up in straight python, and then
+grabbing it all into tibbles later.
 
 
 
 ## tskit stuff
 
-Let's see if we can do this all within R.
-
-```{r}
-use_condaenv(condaenv = PYSLIM_CONDA)
-
-tskit <- import("tskit")
-pyslim <- import("pyslim")
-msprime <- import("msprime")
-pp <- import("pprint")
-
-ts <- tskit$load("slim_test.trees")
-
-for (tree in iterate(ts$trees())) {
-  print(tree$get_interval())
-}
-
-lapply(boing, function(x) x$get_interval())
-```
-
+Let's just extract everything we need from the tree sequence.
 ```{python}
 
-for u in ts.nodes(order='timeasc'):
-  print(u)
+import tskit
+import pyslim
+import msprime
+import numpy as np
+import pandas as pd
+
+whole_tree = tskit.load("slim_test.trees")
 
 ```
+
+Now, however, we are going to see if we can make things smaller and more efficient
+by simplifying this to include the tree that is relevant only to the p3 individuals
+in that final (0th going backward) generation.
+```{python}
+wids = np.array([n.id for n in whole_tree.nodes() ])
+wops = whole_tree.nodes_population
+wimes = whole_tree.nodes_time
+p3_nodes0 = wids[(wops == 3) & ((wimes == 0) | (wimes == 1) | (wimes == 2))] # keep the last three generations as samples
+
+ts = whole_tree.simplify(
+  p3_nodes0, 
+  #filter_populations = False,
+  #filter_nodes = False,
+  keep_unary = True # this is critical.  Otherwise you only get segments that have coalesced
+  )
+```
+
+As the SLiM script was originally coded up, the tree sequence only maintained
+Individuals for the first and the last generations, but we will need those for
+more.  In fact we might as well record individuals for every generation because
+we will want to have ancestry for the parents, at the least and possibly because
+we will want to do parentage across more than just the last generation. So, I have
+recorded individuals in p3 across all generations, but in the simplify step I tell
+it to keep all segments in the last three generations---those are the ones that we
+will sample for doing parent-offspring inference.
+
+### Basic tables of individuals and nodes
+
+```{python}
+node_ids = np.array([n.id for n in ts.nodes() ])  # tskit ids of the nodes
+node_pops = ts.nodes_population                # pops that the nodes belong to
+node_indivs = ts.nodes_individual     # indivs that the nodes belong to
+node_times = ts.nodes_time    # times that the nodes occur at
+
+
+
+ind_ids = np.array([i.id for i in ts.individuals() ]) # get the tskit ids of the individuals
+ind_pops = ts.individuals_population          # pops that the individuals belong to
+ind_times = ts.individual_times          # times that are associated with the individuals
+
+# metadata from the individuals
+ind_pedigree_ids = np.array([i.metadata["pedigree_id"] for i in ts.individuals() ])
+ind_pedigree_p1 = np.array([i.metadata["pedigree_p1"] for i in ts.individuals() ])
+ind_pedigree_p2 = np.array([i.metadata["pedigree_p2"] for i in ts.individuals() ])
+ind_sex = np.array([i.metadata["sex"] for i in ts.individuals() ])
+
+
+```
+
+
+Now, we can make a nodes tibble and an indivs tibble for easier viewing and
+subsequent handling of all this in R
+```{r}
+indiv_tib <- tibble(
+  ind_id = as.integer(py$ind_ids),
+  ind_pop = as.integer(py$ind_pops),
+  ind_time = as.double(py$ind_times),
+  sex = as.integer(py$ind_sex),
+  ped_id = as.integer(py$ind_pedigree_ids),
+  ped_p1 = as.integer(py$ind_pedigree_p1),
+  ped_p2 = as.integer(py$ind_pedigree_p2)
+)
+
+nodes_tib <- tibble(
+  node_id = as.integer(py$node_ids),
+  node_pop = as.integer(py$node_pops),
+  node_ind = as.integer(py$node_indivs),
+  node_time = as.integer(py$node_times)
+)
+```
+
+Let's join the individuals onto the nodes and make sure that everything is looking right
+as far as we can tell.
+```{r}
+nodes_tib %>%
+  left_join(indiv_tib, by = join_by(node_ind == ind_id)) %>%
+  count(node_pop, node_time, sex, ind_time, is.na(ped_id), is.na(ped_p1), is.na(ped_p2))
+```
+
+That all looks OK.
+
+Note that in the `indiv_tib` we will have the pedigree of everyone in those last three
+generations.
+
+### The next part: ancestral segments 
+
+It is clear from the foregoing that the individuals that are the founders in the
+SLiM simulation are the ones with a time of 9.0.  So, what we want to do in each
+tree of the sequence is assign the population of each founder node to all the
+nodes beneath each of those founder nodes, and associate that with a left and a
+right interval.  
+
+Let's start by getting all the founder nodes that we want to do this for:
+```{r}
+founder_nodes <- nodes_tib %>%
+  filter(node_time == 9) %>%
+  pull(node_id)
+founder_node_pops <- nodes_tib %>%
+  filter(node_time == 9) %>%
+  pull(node_pop)
+```
+
+Now use those in python to get the pops that each descendant segment came from. We
+do this as a function that operates on a single local `tree` and also takes as
+input a list of the founder nodes and their corresponding founder pops
+```{python}
+#' @tree a tree sequence tree object (a local tree)
+#' @fn a list of founder node integer ids
+#' @fp a list of founder node populations (same length as fn)
+def founder_pops_of_segs(tree, fn = r.founder_nodes, fp = r.founder_node_pops):
+  # get a list of descendants (including themselves) for each founder node
+  descendants = [list(tree.nodes(f)) for f in fn]
+  # count up how many descendants there are for each founder node
+  num_desc = [len(i) for i in descendants]
+  # get a list of the pops that these descendants came from that has
+  # elements of the same length as descendants, then catenate it into
+  # a np array 
+  desc_pops_np = np.concatenate([ [p] * n for p, n in zip(fp, num_desc)])
+  descendants_np = np.concatenate(descendants)
+  
+  # finally, stick that into a pandas data frame along with the left and right points
+  # of the interval
+  df = pd.DataFrame(
+    { "left":tree.interval[0],
+    "right":tree.interval[1],
+    "node_id":descendants_np,
+    "pop":desc_pops_np}
+    )
+  return(df)
+
+
+```
+
+Then we can use that dude like this, where we grab `founder_nodes` and
+`founder_pops` from the R environment, using the `r.variable` syntax.
+
+```{python}
+founder_pops_of_segs(tree = ts.first())
+
+```
+
+That is cool.  So, now all we have to do is do that across all the
+segments and catenate the resulting pandas data frames together.
+```{python}
+segs = pd.concat(
+  [founder_pops_of_segs(t, r.founder_nodes, r.founder_node_pops) for t in ts.trees()],
+  ignore_index = True
+  )
+```
+
+
+
+
+
+It seems that an alternative way to get that information might be to use the tskit
+`link_ancestors` method.  For that, we might want to get a list of the
+samples we want.
+```{python}
+links = ts.tables.link_ancestors(ts.samples(), r.founder_nodes)
+```
+Now, make a tibble of that and see what we get
+```{r}
+links_tib <- tibble(
+  child = as.integer(py$links$child),
+  parent = as.integer(py$links$parent),
+  left = as.numeric(py$links$left),
+  right = as.numeric(py$links$right)
+) %>%
+  arrange(child, left, right)
+```
+
+
+
+
+
+
+
+
+And we can grab that dude in R as a tibble. 
+```{r}
+segs_tib <- as_tibble(py$segs) %>%
+  arrange(node_id, left, right, pop) %>%
+  rename(anc_pop = pop) %>%
+  select(node_id, everything())
+
+
+segs_tib
+```
+
+
+Note that we will want to collapse contiguous segments of the same ancestry. As
+it is now, this is keeping track of a lot of segments at which there is
+no change in ancestry.  But we can do that within individuals. We can do that with some cumsum stuff.
+
+**TODO: at this point it I need to carve these segments up into chromosomes.  It think
+it should be easy enough to do it by using `cut` on the start and end points 
+(maybe after collapsing the segments) and then figuring
+out which chromosome the start and end points are on, and then chopping those
+segments that span chromosomes up as need be.  This might be better done
+as collapsing time....**
+
+```{r}
+st2 <- segs_tib %>%
+  group_by(node_id) %>%
+  mutate( 
+    grp = cumsum(anc_pop != lag(anc_pop, default = 1))
+  ) %>%
+  group_by(node_id, grp) %>% 
+  slice(1, n()) %>% 
+  summarise(left = left[1], right = right[2], anc_pop = anc_pop[1]) %>%
+  ungroup()
+  
+```
+
+Let's join the node and indiv information back on there
+
+```{r}
+st3 <- st2 %>%
+  left_join(nodes_tib, by = join_by(node_id)) %>%
+  left_join(indiv_tib, by = join_by(node_ind == ind_id))
+```
+
+We should be able to make a figure out of that.
+```{r}
+#| fig-height: 20
+st_withx <- st3 %>%
+  group_by(node_time) %>%
+  mutate(
+    node_x = as.integer(factor(node_id)),
+    anc_popc = as.character(anc_pop)
+  ) 
+
+ggplot(st_withx) +
+  geom_rect(aes(xmin=node_x - 1, xmax = node_x, ymin = left, ymax = right, fill = anc_popc), colour = NA) +
+  facet_wrap(~ node_time, ncol = 1, scales = "free_x")
+
+```
+
+
+That is cool to see.  The blank spaces are where the genetic material from the final
+three generations have coalesced, and then the solid band at the bottom are the founders
+where all the unary lineages are still.  Cool!
+
+So, it would be good to show those by chromosomes too.  We can do that by just drawing lines at the
+chromosome boundaries.  We will do that for just those last three sampling years.
+
+```{r}
+#| fig-height: 30
+g <- st_withx %>%
+  filter(node_time <= 2) %>%
+  ggplot() +
+  geom_rect(aes(xmin=node_x - 1, xmax = node_x, ymin = left, ymax = right, fill = anc_popc), colour = NA) +
+  geom_hline(yintercept = bip$ends, linewidth = 0.05) + 
+  facet_wrap(~ node_time, ncol = 1, scales = "free_x") 
+
+g
+```
+
+We will also print that to a PDF:
+```{r}
+dir.create("results/001", showWarnings = FALSE, recursive = TRUE)
+ggsave(g, filename = "results/001/node_paint.pdf", width = 20, height = 30)
+```
+
+
+## Put these segments back into individuals
+
+We want to get the ancestry copy number (0, 1, or 2 from population 1) for the individuals.
+As I look at it now, this might be better done before merging adjacent intervals, since each
+node should contain the same intervals to start with.  
