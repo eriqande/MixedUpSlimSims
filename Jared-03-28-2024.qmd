@@ -351,3 +351,85 @@ but we could also wrap this all up into a single R function eventually.
 
 Not tonight, though!  
 
+## Coming back to this to extract the ancestors
+
+Now I have an R package that will do this:
+```{r}
+library(MixedUpSlimSims)
+```
+
+First we must get a summary of the nodes and indivdiuals:
+```{r}
+ni <- ts_nodes_and_inds(py$slim_trees)
+```
+
+Now we can figure out who our sample nodes and ancestral/founder nodes are
+```{r}
+founder_nodes <- ni$nodes_tib %>%
+  filter(node_time == 30) %>%
+  pull(node_id)
+founder_node_pops <- ni$nodes_tib %>%
+  filter(node_time == 30) %>%
+  pull(node_pop)
+```
+And then make a list of the focal (sample) nodes in years 0, 1, 2
+```{r}
+focal_nodes_list <- lapply(0:2, function(x) {
+  ni$nodes_tib %>%
+    filter(node_time == x & node_pop == 2) %>%
+    pull(node_id)
+})
+```
+
+
+Now, we can get the ancestral segments at all those focal nodes:
+
+```{r}
+segments_tib <- ancestral_segs(
+  ts = py$mutated_trees,
+  focal_nodes_list = focal_nodes_list,
+  founder_nodes = founder_nodes,
+  nodes_tib = ni$nodes_tib,
+  indiv_tib = ni$indiv_tib
+)
+```
+
+
+And then we can get the ancestral tracts in the individuals that those nodes belong to.
+```{r}
+ind_tracts <- indiv_ancestry_tracts(segments_tib)
+```
+Now make a plot:
+```{r}
+#| fig-height: 17
+ind_segs3 <- ind_tracts %>%
+  mutate(
+    time_f = factor(ind_time, levels = 2:0)
+  ) %>%
+  group_by(ind_id) %>%
+  mutate(admixture_1_score = sum( (right - left) * dose)) %>%
+  ungroup() %>%
+  arrange(time_f, admixture_1_score, ind_id) %>%
+  group_by(time_f) %>%
+  mutate(
+    ind_int = as.integer(factor(ind_id, levels = unique(ind_id))),
+    dose_c = as.character(dose)
+  )
+
+
+# this is Omyk_v1.0.  We
+fai <- read_tsv(
+  "inputs/omyV6Chr.fasta.fai",
+  col_names = c("chrom", "len", "cumul", "X1", "X2")
+) %>%
+  mutate(
+    ends = cumsum(len)
+  )
+
+ggplot(ind_segs3) +
+  geom_rect(aes(xmin = ind_int - 1, xmax = ind_int, ymin = left, ymax = right, fill = dose_c)) +
+  facet_wrap(~ time_f, ncol = 1) +
+  scale_fill_manual(values = c(`2` = "red", `3` = "orange", `4` = "blue")) +
+  geom_hline(yintercept = fai$ends, linewidth = 0.05)
+
+```
