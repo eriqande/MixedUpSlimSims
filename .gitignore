@@ -6,3 +6,5 @@
 Jared-03-28-2024.html
 results
 .DS_Store
+__pycache__
+default.profraw

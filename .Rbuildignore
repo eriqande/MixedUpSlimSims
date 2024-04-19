@@ -1,3 +1,14 @@
 ^MixedUpSlimSims\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+^001-*$
+^default\.profraw$
+^gens_0_1_2\.vcf$
+^__pycache__$
+^\.git$
+^Unincorporated-Jared-Code$
+^Post-Totality-Stuff-From-Jared$
+^results$
+^SLiM-models$
+^slim_test\.trees$
+^README\.md$

@@ -6,6 +6,23 @@
 \usage{
 ancestral_segs(ts, focal_nodes_list, founder_nodes, nodes_tib, indiv_tib)
 }
+\arguments{
+\item{ts}{the tree sequence.  You pass it as the object in py in the
+global env.  i.e., as py$ts, for example.}
+
+\item{focal_nodes_list}{an unnamed list.  Each element is a vector of integer
+node ids in which you want to track ancestry segments.  It each vector must
+include all the focal individuals of each cohort.}
+
+\item{founder_nodes}{vector of integer ids of nodes that are considered the founders
+(typically the earliest ancestors of known population origin).}
+
+\item{nodes_tib}{tibble of the nodes.  This is the \code{nodes_tib} component of the
+list returned by \code{ts_nodes_and_inds()}.}
+
+\item{indiv_tib}{tibble of the indivs.  This is the \code{indiv_tib} component of the
+list returned by \code{ts_nodes_and_inds()}.}
+}
 \description{
 Uses link_ancestors from tskit, internally using python, to return a tibble
 with everything you need to know.

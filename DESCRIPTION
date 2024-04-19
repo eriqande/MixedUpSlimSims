@@ -9,10 +9,14 @@ License: CC0
 Encoding: UTF-8
 Imports:
     dplyr,
+    ggplot2,
+    glue,
     magrittr,
     readr,
     reticulate,
     stringr,
-    tibble
+    tibble,
+    tidyr
+LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
