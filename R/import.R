@@ -14,10 +14,11 @@
 NULL
 
 
-#' @importFrom dplyr arrange distinct filter group_by join_by lag left_join mutate n pull rename select semi_join slice starts_with summarise ungroup
+#' @importFrom dplyr arrange bind_cols distinct filter group_by join_by lag left_join mutate n pull rename select semi_join slice starts_with summarise ungroup
 #' @importFrom ggplot2 aes facet_wrap geom_hline geom_rect ggplot scale_fill_manual
 #' @importFrom readr read_tsv write_tsv
 #' @importFrom reticulate py_run_string r_to_py source_python
+#' @importFrom stats runif
 #' @importFrom stringr str_detect
 #' @importFrom tibble as_tibble tibble
 #' @importFrom tidyr nest
@@ -32,6 +33,7 @@ if (getRversion() >= "2.15.1")  {
   utils::globalVariables(
     c(
       ".",
+      "POS",
       "X1",
       "X2",
       "X3",
