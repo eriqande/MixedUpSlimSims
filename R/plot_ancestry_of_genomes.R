@@ -9,10 +9,11 @@
 #' @return a ggplot object
 plot_ancestry_of_genomes <- function(Segs) {
 
+
   # get x and y values
   st_withx <- Segs %>%
     mutate(node_time_f = factor(node_time, levels = rev(sort(unique(node_time))))) %>%  # do this so earlier times are higher in the facets
-    group_by(node_time) %>%
+    group_by(node_time, node_pop) %>%
     mutate(
       node_x = as.integer(factor(node_id)),
       anc_popc = as.character(anc_pop)
@@ -20,6 +21,7 @@ plot_ancestry_of_genomes <- function(Segs) {
 
   ggplot(st_withx) +
     geom_rect(aes(xmin=node_x - 1, xmax = node_x, ymin = left, ymax = right, fill = anc_popc), colour = NA) +
-    facet_wrap(~ node_time_f, ncol = 1, scales = "free_x")
+    facet_grid(node_time_f ~ node_pop, scales = "free_x") +
+    theme_bw()
 
 }

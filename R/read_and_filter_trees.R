@@ -7,16 +7,15 @@
 #' @param years_list A named list.  Each name is an integer signifying a SLiM
 #' population, and the value is an integer vector of tree-seq years for which
 #' indivdividuals/nodes in the tree seq from the named population should be
-#' retained in the tree-sequence.
+#' retained in the tree-sequence. For example `list(`3` = 0:4)`
 #' @export
 read_and_filter_trees <- function(
   trees_path = "slim_test.trees",
-  years_list = list(`3` = 0:9)
+  years_list
 )
 {
 
   # make a string to pick out the pops and years
-  years_list <- list( `1` = 4:8, `2` = c(3, 5, 7), `3` = 0:9 )
   year_commas <- lapply(years_list, function(x) paste(x, collapse = ","))
 
   selector <- lapply(names(year_commas), function(x) {

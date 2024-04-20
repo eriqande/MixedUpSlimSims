@@ -33,21 +33,26 @@ initialize() {
 	p1.setMigrationRates(p2, 0.05); // migration rate from WCT into RBT
 	p2.setMigrationRates(p1, 0.01); // migration rate from RBT into WCT
 }
+
+
+2: late() {
+  // remember individuals over all generations so we can plot them and see how
+  // the admixture is proceeding
+  sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
 9 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // retains individual information so we can get their data as grandparents of the final generation
 	p1.outputVCFSample(n_p1, replace=F, filePath=analysis_pop + "_rbt_grandparents_slim_output.vcf");
 	p2.outputVCFSample(n_p2, replace=F, filePath=analysis_pop + "_wct_grandparents_slim_output.vcf");
-
 }
 10 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // retains individual information so we can get their data as parents of the final generation
 	p1.outputVCFSample(n_p1, replace=F, filePath=analysis_pop + "_rbt_parents_slim_output.vcf");
 	p2.outputVCFSample(n_p2, replace=F, filePath=analysis_pop + "_wct_parents_slim_output.vcf");
 
 }
 11 late() {
-	sim.treeSeqOutput(analysis_pop + ".trees"); //  write out trees
+
 	p1.outputVCFSample(n_p1, replace=F, filePath=analysis_pop + "_rbt_offspring_slim_output.vcf");
 	p2.outputVCFSample(n_p2, replace=F, filePath=analysis_pop + "_wct_offspring_slim_output.vcf");
+	sim.treeSeqOutput(analysis_pop + ".trees"); //  write out trees
 }
 

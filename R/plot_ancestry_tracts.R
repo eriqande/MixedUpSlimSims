@@ -10,7 +10,7 @@
 #' lines at the chromosome boundaries.
 #' @export
 #' @return returns a ggplot object
-plot_ancestry_copy_number <- function(
+plot_ancestry_tracts <- function(
     IndSegs,
     chrom_ends = NULL
 ) {
@@ -19,23 +19,25 @@ plot_ancestry_copy_number <- function(
     mutate(
       time_f = factor(ind_time, levels = rev(sort(unique(ind_time))))
     ) %>%
-    group_by(ind_id) %>%
+    group_by(ind_pop, ind_id) %>%
     mutate(admixture_1_score = sum( (right - left) * dose)) %>%
     ungroup() %>%
-    arrange(time_f, admixture_1_score, ind_id) %>%
-    group_by(time_f) %>%
+    arrange(time_f, ind_pop, admixture_1_score, ind_id) %>%
+    group_by(time_f, ind_pop) %>%
     mutate(
       ind_int = as.integer(factor(ind_id, levels = unique(ind_id))),
       dose_c = as.character(dose)
-    )
+    ) %>%
+    ungroup()
 
 
 
 
   g <- ggplot(ind_segs3) +
     geom_rect(aes(xmin = ind_int - 1, xmax = ind_int, ymin = left, ymax = right, fill = dose_c)) +
-    facet_wrap(~ time_f, ncol = 1) +
-    scale_fill_manual(values = c(`0` = "red", `1` = "orange", `2` = "blue"))
+    facet_grid(time_f ~ ind_pop) +
+    scale_fill_manual(values = c(`0` = "red", `1` = "orange", `2` = "blue")) +
+    theme_bw()
 
   if(!is.null(chrom_ends)) {
     g <- g + geom_hline(yintercept = chrom_ends$cumul_end, linewidth = 0.05)
