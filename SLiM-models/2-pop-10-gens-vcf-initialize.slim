@@ -1,6 +1,5 @@
 
 initialize() {
-	defineConstant("analysis_pop", "Fake"); // define the analysis population
 	defineConstant("n_p1", 1000); // number of individuals in the RBT pop
 	defineConstant("n_p2", 1000); // number of individuals in the WCT pop
 
@@ -24,9 +23,9 @@ initialize() {
 	sim.addSubpop("p1", n_p1); // rainbow trout population
 	sim.addSubpop("p2", n_p2); // westslope population
 
-	c(p1,p2).genomes.readFromVCF("slim_input.vcf", m1); // Read in a .vcf that was made in R and has RBT individuals first and WCT individuals second
+	// Read in a .vcf that was made in R and has p1 indivs first and p2 indivs second
+	c(p1,p2).genomes.readFromVCF("slim_input.vcf", m1);
 
-		// I ran p1.genomes.outputVCF() right here, and the data seem to be getting read in correctly and placed in the right subpopulations!
 
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // retains first-gen p1 and p2 individuals to determine genomic region population-of-origin;
 	                                                                // automatically recorded by default, but doesn't hurt to keep explicitly
@@ -40,19 +39,14 @@ initialize() {
   // the admixture is proceeding
   sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
 }
-9 late() {
-	p1.outputVCFSample(n_p1, replace=F, filePath="p1-" + sim.cycle + ".vcf");
-	p2.outputVCFSample(n_p2, replace=F, filePath="p2-" + sim.cycle + ".vcf");
+9:11 late() {  // Last three years write everyone out to a separate VCF file named pX-T.vcf
+               // where X is the subpop.id and T is the cycle number
+  for (subpop in sim.subpopulations) {
+    subpop.outputVCFSample(subpop.individualCount, replace=F, filePath="p" + subpop.id + "-" + sim.cycle + ".vcf");
+  }
 }
-10 late() {
-	p1.outputVCFSample(n_p1, replace=F, filePath="p1-" + sim.cycle + ".vcf");
-	p2.outputVCFSample(n_p2, replace=F, filePath="p2-" + sim.cycle + ".vcf");
 
-}
 11 late() {
-
-	p1.outputVCFSample(n_p1, replace=F, filePath="p1-" + sim.cycle + ".vcf");
-	p2.outputVCFSample(n_p2, replace=F, filePath="p2-" + sim.cycle + ".vcf");
 	sim.treeSeqOutput("SLiM.trees"); //  write out trees
 }
 

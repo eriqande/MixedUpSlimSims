@@ -8,3 +8,6 @@ results
 .DS_Store
 __pycache__
 default.profraw
+003-example-use-of-MixedUpSlimSims-package.html
+/*.vcf
+/*.trees

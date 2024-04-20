@@ -4,7 +4,7 @@
 \alias{read_and_filter_trees}
 \title{Read a tree sequence and retain nodes from certain populations at certain times}
 \usage{
-read_and_filter_trees(trees_path = "slim_test.trees", years_list)
+read_and_filter_trees(trees_path, years_list, run_py = TRUE)
 }
 \arguments{
 \item{trees_path}{The path to the .trees file that should be read.}
@@ -13,6 +13,9 @@ read_and_filter_trees(trees_path = "slim_test.trees", years_list)
 population, and the value is an integer vector of tree-seq years for which
 indivdividuals/nodes in the tree seq from the named population should be
 retained in the tree-sequence. For example \verb{list(}3\verb{ = 0:4)}}
+
+\item{run_py}{Logical. If true, it will run the python code, otherwise
+it will just return in.}
 }
 \description{
 This uses glue to write values into a python script which is then run

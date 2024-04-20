@@ -8,10 +8,13 @@
 #' population, and the value is an integer vector of tree-seq years for which
 #' indivdividuals/nodes in the tree seq from the named population should be
 #' retained in the tree-sequence. For example `list(`3` = 0:4)`
+#' @param run_py Logical. If true, it will run the python code, otherwise
+#' it will just return in.
 #' @export
 read_and_filter_trees <- function(
-  trees_path = "slim_test.trees",
-  years_list
+  trees_path,
+  years_list,
+  run_py = TRUE
 )
 {
 
@@ -45,7 +48,7 @@ ts = XX__whole_tree.simplify(
 
 '
 
-  reticulate::py_run_string(glue::glue(python_lines))
+  if(run_py) { reticulate::py_run_string(glue::glue(python_lines))  }
 
-  python_lines
+  glue::glue(python_lines)
 }
