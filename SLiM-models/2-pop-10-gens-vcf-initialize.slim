@@ -41,18 +41,18 @@ initialize() {
   sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
 }
 9 late() {
-	p1.outputVCFSample(n_p1, replace=F, filePath=analysis_pop + "_rbt_grandparents_slim_output.vcf");
-	p2.outputVCFSample(n_p2, replace=F, filePath=analysis_pop + "_wct_grandparents_slim_output.vcf");
+	p1.outputVCFSample(n_p1, replace=F, filePath="p1-" + sim.cycle + ".vcf");
+	p2.outputVCFSample(n_p2, replace=F, filePath="p2-" + sim.cycle + ".vcf");
 }
 10 late() {
-	p1.outputVCFSample(n_p1, replace=F, filePath=analysis_pop + "_rbt_parents_slim_output.vcf");
-	p2.outputVCFSample(n_p2, replace=F, filePath=analysis_pop + "_wct_parents_slim_output.vcf");
+	p1.outputVCFSample(n_p1, replace=F, filePath="p1-" + sim.cycle + ".vcf");
+	p2.outputVCFSample(n_p2, replace=F, filePath="p2-" + sim.cycle + ".vcf");
 
 }
 11 late() {
 
-	p1.outputVCFSample(n_p1, replace=F, filePath=analysis_pop + "_rbt_offspring_slim_output.vcf");
-	p2.outputVCFSample(n_p2, replace=F, filePath=analysis_pop + "_wct_offspring_slim_output.vcf");
-	sim.treeSeqOutput(analysis_pop + ".trees"); //  write out trees
+	p1.outputVCFSample(n_p1, replace=F, filePath="p1-" + sim.cycle + ".vcf");
+	p2.outputVCFSample(n_p2, replace=F, filePath="p2-" + sim.cycle + ".vcf");
+	sim.treeSeqOutput("SLiM.trees"); //  write out trees
 }
 
