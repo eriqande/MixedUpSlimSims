@@ -30,16 +30,14 @@ In order to get this to work on an a mac running Apple Silicon there are
 a few things that must be done.
 
 1.  Install a conda environment within the x86_64 shell that includes
-    `pyslim`, `bedtools` and `bcftools`. Any version of these should
-    work, so I am not specifying versions here. Installing pyslim will
-    get you `tskit` and perhaps some other conda packages that you might
-    need, though we don’t directly use `pyslim` in the package (though
-    we might in the future!). You can name this environment anything you
-    want, but it will be easiest to name it `mixed-up-parents`.
+    `tskit`, `numpy`, `pandas`, and
+    bedtools`and`bcftools`.  Any version of these should work, so I am not     specifying versions here. You can name     this environment anything you want,     but it will be easiest to name it`mixed-up-parents\`.
 
     ``` sh
     mamba  create -n mixed-up-parents -c conda-forge -c bioconda \
-        conda-forge::pyslim  \
+        anaconda::pandas \
+        conda-forge::numpy \
+        conda-forge::tskit  \
         bedtools \
         bcftools
     ```

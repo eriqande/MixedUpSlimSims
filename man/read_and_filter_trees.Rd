@@ -11,8 +11,16 @@ read_and_filter_trees(trees_path, years_list, run_py = TRUE)
 
 \item{years_list}{A named list.  Each name is an integer signifying a SLiM
 population, and the value is an integer vector of tree-seq years for which
-indivdividuals/nodes in the tree seq from the named population should be
-retained in the tree-sequence. For example \verb{list(}3\verb{ = 0:4)}}
+individuals/nodes in the tree seq from the named population should be
+retained in the tree-sequence. The integers specifying populations will
+be 1-based if you obtained the tree sequence by running SLiM and have
+not otherwise modified it.  Population 1 will correspond to \code{p1} in the
+simulation and population \code{2} will correspond to \code{p2}, etc. The years
+will have 0 as the latest time and they go backward.  If you ran a SLiM
+simulation forward from time 1 to 10, then SLiM year 10 will be tskit year 0 and
+SLiM year 1 will be tskit year 9. So, to retain p1 and p2 individuals
+in tskit years 0 through four, you would set
+\code{years_list = list(`1` = 0:4, `2` = 0:4)}}
 
 \item{run_py}{Logical. If true, it will run the python code, otherwise
 it will just return in.}

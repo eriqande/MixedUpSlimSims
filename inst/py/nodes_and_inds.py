@@ -1,10 +1,7 @@
 
 
 import tskit
-import pyslim
-import msprime
 import numpy as np
-import pandas as pd
 
 
 

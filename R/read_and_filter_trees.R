@@ -6,8 +6,16 @@
 #' @param trees_path The path to the .trees file that should be read.
 #' @param years_list A named list.  Each name is an integer signifying a SLiM
 #' population, and the value is an integer vector of tree-seq years for which
-#' indivdividuals/nodes in the tree seq from the named population should be
-#' retained in the tree-sequence. For example `list(`3` = 0:4)`
+#' individuals/nodes in the tree seq from the named population should be
+#' retained in the tree-sequence. The integers specifying populations will
+#' be 1-based if you obtained the tree sequence by running SLiM and have
+#' not otherwise modified it.  Population 1 will correspond to `p1` in the
+#' simulation and population `2` will correspond to `p2`, etc. The years
+#' will have 0 as the latest time and they go backward.  If you ran a SLiM
+#' simulation forward from time 1 to 10, then SLiM year 10 will be tskit year 0 and
+#' SLiM year 1 will be tskit year 9. So, to retain p1 and p2 individuals
+#' in tskit years 0 through four, you would set
+#' ``years_list = list(`1` = 0:4, `2` = 0:4)``
 #' @param run_py Logical. If true, it will run the python code, otherwise
 #' it will just return in.
 #' @export
@@ -43,7 +51,8 @@ XX__kept_nodes = XX__wids[{selector}] # keep the requested nodes
 ts = XX__whole_tree.simplify(
   XX__kept_nodes,
   keep_unary = True,  # this is critical.  Otherwise you only get segments that have coalesced
-  keep_input_roots = True
+  keep_input_roots = True,
+  filter_populations = False  # this is critical to keep population IDs 1-based (otherwise it gets turned to 0-based)
   )
 
 '

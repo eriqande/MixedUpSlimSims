@@ -13,6 +13,8 @@
 #
 
 
+import tskit
+import pandas as pd
 
 # here is a function that takes a list of samples and founders and
 # spits back a pandas data frame of the edge table

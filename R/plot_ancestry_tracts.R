@@ -15,18 +15,21 @@ plot_ancestry_tracts <- function(
     chrom_ends = NULL
 ) {
 
+  # first, get the admixture from pop p2 to sort on
+  adm2 <- admixture_fracts_from_ancestry_tracts(IndSegs) %>%
+    filter(anc_pop == 2) %>%
+    select(ind_id, admix_fract)
+
   ind_segs3 <- IndSegs %>%
+    left_join(adm2, by = join_by(ind_id)) %>%
     mutate(
       time_f = factor(ind_time, levels = rev(sort(unique(ind_time))))
     ) %>%
-    group_by(ind_pop, ind_id) %>%
-    mutate(admixture_1_score = sum( (right - left) * dose)) %>%
-    ungroup() %>%
-    arrange(time_f, ind_pop, admixture_1_score, ind_id) %>%
+    arrange(time_f, ind_pop, admix_fract, ind_id) %>%
     group_by(time_f, ind_pop) %>%
     mutate(
       ind_int = as.integer(factor(ind_id, levels = unique(ind_id))),
-      dose_c = as.character(dose)
+      trit_c = as.character(trit)
     ) %>%
     ungroup()
 
@@ -34,9 +37,16 @@ plot_ancestry_tracts <- function(
 
 
   g <- ggplot(ind_segs3) +
-    geom_rect(aes(xmin = ind_int - 1, xmax = ind_int, ymin = left, ymax = right, fill = dose_c)) +
+    geom_rect(aes(xmin = ind_int - 1, xmax = ind_int, ymin = left, ymax = right, fill = trit_c)) +
     facet_grid(time_f ~ ind_pop) +
-    scale_fill_manual(values = c(`0` = "red", `1` = "orange", `2` = "blue")) +
+    scale_fill_manual(values = c(
+      `2` = "#d73027",
+      `4` = "#fdae61",
+      `6` = "#4575b4",
+      `10` = "#ffffbf",
+      `12` = "#e0f3f8",
+      `18` = "#984ea3"
+    )) +
     theme_bw()
 
   if(!is.null(chrom_ends)) {

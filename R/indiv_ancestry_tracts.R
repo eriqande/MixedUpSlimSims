@@ -50,6 +50,16 @@ indiv_ancestry_tracts <- function(A) {
   CALL <- paste("bedtools intersect -a", Abed, "-b", Bbed, "-wb >", Cbed, sep = " ", collapse = " ")
   system(CALL)
 
+
+  # here is a quick function to compute the trits from the ancestry.
+  # each dose of ancestry from p1 adds a value of 1 to the 3^0 digit
+  # in a ternary number.  Each dose of ancestry from p2 adds a value of
+  # 1 to the 3^1 digit, and so forth.  By this, we can account for more than
+  # just two populations/species
+  trits <-  function(a1, a2) {
+    3 ^ (a1 - 1) + 3 ^ (a2 - 1)
+  }
+
   ind_segs <- read_tsv(Cbed, col_names = FALSE) %>%
     rename(
       ind = X1,
@@ -60,9 +70,9 @@ indiv_ancestry_tracts <- function(A) {
     ) %>%
     select(-starts_with("X")) %>%
     mutate(
-      dose = anc1 + anc2
+      trit = trits(anc1, anc2)
     ) %>%
-    select(ind, left, right, anc1, anc2, dose) %>%
+    select(ind, left, right, anc1, anc2, trit) %>%
     arrange(ind, left, right)
 
   message("Collapsing adjacent common ancestry tracts...")
@@ -71,11 +81,11 @@ indiv_ancestry_tracts <- function(A) {
   ind_segs2 <- ind_segs %>%
     group_by(ind) %>%
     mutate(
-      grp = cumsum(dose != lag(dose, default = 1))
+      grp = cumsum(trit != lag(trit, default = 1))
     ) %>%
     group_by(ind, grp) %>%
     slice(1, n()) %>%
-    summarise(left = left[1], right = right[2], anc1 = anc1[1], anc2 = anc2[1], dose = dose[1]) %>%
+    summarise(left = left[1], right = right[2], anc1 = anc1[1], anc2 = anc2[1], trit = trit[1]) %>%
     ungroup()
 
   # attach the meta data back on there and return the result.
