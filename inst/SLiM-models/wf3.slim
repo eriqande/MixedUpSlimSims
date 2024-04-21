@@ -1,0 +1,56 @@
+// Keywords: tree-sequence recording, tree sequence recording, migration, dispersal
+
+initialize() {
+	initializeSLiMOptions(keepPedigrees=T); // turn on pedigree tracking; see section 25 of the manual (25.7, pg. 679)
+	initializeTreeSeq();
+	initializeMutationRate(0); // zero mutations forward-in-time; will be added by msprime afterwards
+	initializeMutationType("m1", 0.5, "f", 0.0); // neutral mutations, but won't be used anyways
+	initializeGenomicElementType("g1", m1, 1.0);
+
+	// set up 29 trout chromosomes with not much recombination within them
+	defineConstant("L", 1949962539); // length of genome
+	ends = c(84884017, 84884018, 170364868, 170364869, 255302337, 255302338, 340358758, 340358759, 432561311, 432561312, 515492034, 515492035, 595255810, 595255811, 679034094, 679034095, 747501830, 747501831, 818558021, 818558022, 898836325, 898836326, 988491333, 988491334, 1054543576, 1054543577, 1134902301, 1134902302, 1198270468, 1198270469, 1269166547, 1269166548, 1345694384, 1345694385, 1407413604, 1407413605, 1466989977, 1466989978, 1508401989, 1508401990, 1560331576, 1560331577, 1608881719, 1608881720, 1657923568, 1657923569, 1698286047, 1698286048, 1780887703, 1780887704, 1821070223, 1821070224, 1866387099, 1866387100, 1907331003, 1907331004, 1949962539);
+	rates = c(1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09, 0.5, 1e-09);
+	initializeRecombinationRate(rates, ends);
+	
+	// alterntively set up a single chromosome of length 80 Mb
+	//defineConstant("L", 8e7); // length of genome. Try one chromosome of 80 megabases
+	//initializeRecombinationRate(1e-9);
+
+	initializeGenomicElement(g1, 0, L-1);
+	initializeSex("A");
+	
+}
+1 late() {
+	// make two pops, to start out with 
+	sim.addSubpop("p1", 1000); // rainbow trout population
+	sim.addSubpop("p2", 1000); // westslope population
+	// remember all the p1 and p2 indivs in this first cycle in the tree sequence
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+
+// let subpop3 come into existence one generation after the thing starts. Note that
+// the Cyclone Creek sample is about 13% Rainbow trout origin, so we will start with
+// some, and then trickle in more p2 as we go
+2 late() {
+  sim.addSubpop("p3", 1000);
+	p3.setMigrationRates(c(p1, p2), c(0.50, 0.50)); // population p3 starts as a mix of p1 and p2 individuals
+}
+
+// After the initial pulse was made there, let's continue with 1% immigration from 
+// p2 and nothing else
+3 late() {
+  p3.setMigrationRates(c(p1, p2), c(0, 0));
+}
+
+2: late() {
+  // retain every individual from p3 (time 3 on) in the tree sequence so we can get ancestral
+  // segments and pedigrees for everyone in p3 and also the pedigree
+  sim.treeSeqRememberIndividuals(p3.individuals); 
+}
+
+10 late() {
+	sim.treeSeqOutput("slim_test.trees"); // after 10 gens of mixing/interbreeding, write out trees
+}
+
+

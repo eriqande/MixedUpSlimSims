@@ -1,0 +1,193 @@
+initialize() {
+    initializeSLiMModelType("nonWF");
+    initializeSLiMOptions(keepPedigrees = T);
+    defineConstant("K", 1000); // carrying capacity per pop of 1000
+    // Let these trout live to 5 years old.  This is the mortality
+    // for individuals aged 0, to 5. 
+    defineConstant("MaxAge", 5);
+    defineConstant("MORT", c(0.2, 0.2, 0.2, 0.2, 0.2, 1.0));
+    
+    defineConstant("GL", 1e6); // length of genome
+    
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    m1.convertToSubstitution = T;
+    initializeGenomicElementType("g1", m1, 1.0);
+    initializeGenomicElement(g1, 0, 1);
+    initializeMutationRate(1e-8);
+    initializeRecombinationRate(1e-8);
+    initializeSex("A");
+    
+    
+    // delete any files that will be appended to and write the headers on them that CKMRpop expects
+    writeFile("spip_pedigree.tsv", "year\tpop\tkid\tpa\tma");
+    writeFile("spip_prekill_census.tsv", "year\tpop\tage\tmale\tfemale");
+    writeFile("spip_postkill_census.tsv", "year\tpop\tage\tmale\tfemale");
+    writeFile("spip_samples.tsv", "ID\tsyears_pre\tpop_pre\tsyears_post\tpop_post\tsyears_dur\tpop_dur");
+    
+    // these I am just making empty as dummies so that slurp_spip() has an empty
+    // file to read in. 
+    writeFile("spip_deaths.tsv", "ID\tyear\tage");
+    writeFile("spip_genotypes.tsv", "F47_0_136\t2/2");
+    writeFile("spip_migrants.tsv", "year\tage\tevent");
+
+}
+
+
+// For now we don't bother with any age-specific relative fecundities or partial
+// monogamy in the reproduction here. Rather, we just give males and females
+// a probability of 1.0 of reproducing if they are above age 1.  It appears that
+// we just do Poisson number of offspring or something, by default here.  I am
+// not going to fuss with overdispersion, though that is clearly possible with SLiM.
+reproduction(NULL, "F") {   // define females as the focal reproducers here
+    
+    if (individual.age > 1) {
+        dad = subpop.sampleIndividuals(1, sex="M", minAge=2);
+        child = subpop.addCrossed(individual, dad);
+        
+        // give the child an index according to the number of like-sex individuals
+        // that have been created this year (base-0 subscripted)
+        child.tag = sim.tag;
+        
+        sim.tag = sim.tag + 1;
+        
+        // log the mating in a format that CKMRpop expects.  It isn't entirely equivalent
+        // because the numbers given to males and females in spip are year-specific, but this
+        // should still work.
+        child_name = paste0(child.sex, sim.cycle, "_0_", child.tag);
+        dad_name = paste0(dad.sex, sim.cycle - dad.age, "_0_", dad.tag);
+        mom_name = paste0(individual.sex, sim.cycle - individual.age, "_0_", individual.tag);
+        line = paste(c(sim.cycle, "0", child_name, dad_name, mom_name), sep = "\t");
+        writeFile("spip_pedigree.tsv", line, append=T);
+    
+    }
+}
+
+
+1 early() {
+    sim.addSubpop("p1", K);
+    sim.addSubpop("p2", K);
+    
+    // Here we initialize the ages to what would be roughly expected
+    // given the mortality rates
+ 	 for (subpop in sim.subpopulations) {
+    	subpop.individuals.age = sample(seq(0, MaxAge), size = K, replace = T, weights = c(80, 64, 51, 40, 32, 25));
+	 }    
+    
+    
+    // provide initial tags and remember the next tag value
+    for (subpop in sim.subpopulations) {
+    	subpop.individuals.tag = 1:K; // now_tag:(now_tag + K);
+    }
+    sim.tag = 2 * K + 1;
+    
+    // Now we also have to add each of these starting individuals to
+    // the pedigree as founders.
+    for (subpop in sim.subpopulations) {
+    	sbpn = 0;
+    	for(i in seqAlong(subpop.individuals.tag)) {
+        	bornyear = sim.cycle - subpop.individuals.age[i];
+        	iname = subpop.individuals.sex[i] + bornyear + "_" + sbpn + "_" + subpop.individuals.tag[i];
+        	iage = subpop.individuals.age[i];
+       	line = paste("0", sbpn, iname, "0", "0", sep = "\t");  
+        	writeFile("spip_pedigree.tsv", line, append=T);
+        	sbpn = sbpn + 1;
+    	}
+    }
+
+}
+
+
+early() {
+    // count up the number of individuals of different ages and sexes
+    for (subpop in sim.subpopulations) {
+    	sbpn = 0;
+    	inds = subpop.individuals;
+    	ages = inds.age;
+    	age_bins = 0:MaxAge;  // age categories, 0 to 20
+    	male_ages = ages[inds.sex == "M"];
+    	female_ages = ages[inds.sex == "F"];
+    	m_census = tabulate(male_ages, maxbin = MaxAge);
+    	f_census = tabulate(female_ages, maxbin = MaxAge);
+    
+    	// write those numbers out to the prekill census file
+    	for(a in age_bins) {
+        line = paste(sim.cycle, sbpn, a, m_census[a], f_census[a], sep = "\t");
+        writeFile("spip_prekill_census.tsv", line, append=T);
+    	}
+    	sbpn = sbpn + 1;
+    }
+    
+    
+    
+    // life table based individual mortality
+    mortality = MORT[ages];
+    survival = 1 - mortality;
+    inds.fitnessScaling = survival;
+    // density-dependence, factoring in individual mortality
+    for (subpop in sim.subpopulations) {
+    	subpop.fitnessScaling = K / (subpop.individualCount * mean(survival));
+    }
+    // remember the extant individual tags, and what their names are.
+    // This is a bunch of rigamoral so that we can know the IDs of the
+    // individuals that die in the next generation
+    sim.setValue("extant_tags", sim.subpopulations.individuals.tag);
+    e_sex = sim.subpopulations.individuals.sex;
+    e_born = sim.cycle - sim.subpopulations.individuals.age;
+    e_age = sim.subpopulations.individuals.age;
+    e_tags = sim.subpopulations.individuals.tag;
+    e_lines = e_sex;
+    for(i in seqAlong(e_sex)) {
+        e_lines[i] = e_sex[i] + e_born[i] +  "_0_" + e_tags[i] + "\t" + sim.cycle + "\t" + e_age[i];
+    }
+    sim.setValue("extant_lines", e_lines);
+
+}
+
+
+late() {
+    // count up the number of individuals of different ages and sexes
+    inds = p1.individuals;
+    ages = inds.age;
+    age_bins = 0:MaxAge;  // age categories, 0 to 20
+    male_ages = ages[inds.sex == "M"];
+    female_ages = ages[inds.sex == "F"];
+    m_census = tabulate(male_ages, maxbin = MaxAge);
+    f_census = tabulate(female_ages, maxbin = MaxAge);
+    
+    // write those numbers out to the prekill census file
+    for(a in age_bins) {
+        line = paste(sim.cycle, "0", a, m_census[a], f_census[a], sep = "\t");
+        writeFile("spip_postkill_census.tsv", line, append=T);
+    }
+    
+    // report the individuals that died
+    oldExtant = sim.getValue("extant_tags");
+    newExtant = sim.subpopulations.individuals.tag;
+    old_lines = sim.getValue("extant_lines");
+    survived = (match(oldExtant, newExtant) >= 0);
+    died_lines = old_lines[!survived];
+    for (line in died_lines) {
+        writeFile("spip_deaths.tsv", line, append=T);
+    }
+
+}
+
+
+// sample 3% of the 1, 2, and 3-year olds during years 50 to 75, inclusive
+50:75 late() {
+    // get the total number of indivdiuals of age 1 to 3
+    num_to_samp = sum(tabulate(p1.individuals.age, maxbin = MaxAge)[1:5]);
+    
+    // get the total number to sample
+    ns = rbinom(1, num_to_samp, 0.03);
+    
+    // then sample them:
+    samps = p1.sampleIndividuals(ns, minAge = 1, maxAge = 5);
+    
+    // then write these out:
+    for(s in samps) {
+        s_name = paste0(s.sex, sim.cycle - s.age, "_0_", s.tag);
+        line = paste(s_name, "", "", sim.cycle, "0", "", "", sep = "\t");
+        writeFile("spip_samples.tsv", line, append = T);
+    }
+}

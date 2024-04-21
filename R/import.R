@@ -14,14 +14,14 @@
 NULL
 
 
-#' @importFrom dplyr arrange bind_cols distinct filter group_by join_by lag left_join mutate n pull rename select semi_join slice starts_with summarise ungroup
-#' @importFrom ggplot2 aes facet_wrap geom_hline geom_rect ggplot scale_fill_manual
+#' @importFrom dplyr arrange bind_cols bind_rows distinct filter group_by join_by lag left_join mutate n pull rename select semi_join slice starts_with summarise ungroup
+#' @importFrom ggplot2 aes facet_grid facet_wrap geom_hline geom_rect ggplot scale_fill_manual theme_bw
 #' @importFrom readr read_tsv write_tsv
 #' @importFrom reticulate py_run_string r_to_py source_python
 #' @importFrom stats runif
-#' @importFrom stringr str_detect
+#' @importFrom stringr str_c str_detect str_replace str_split
 #' @importFrom tibble as_tibble tibble
-#' @importFrom tidyr nest
+#' @importFrom tidyr extract nest pivot_longer
 NULL
 
 
@@ -32,6 +32,8 @@ NULL
 if (getRversion() >= "2.15.1")  {
   utils::globalVariables(
     c(
+      "1",
+      "2",
       ".",
       "POS",
       "X1",
@@ -39,14 +41,18 @@ if (getRversion() >= "2.15.1")  {
       "X3",
       "X4",
       "X8",
+      "admix_fract",
       "admixture_1_score",
       "anc1",
       "anc2",
       "anc_pop",
       "anc_popc",
+      "bp",
       "child",
+      "chrom",
       "dose",
       "dose_c",
+      "geno",
       "grp",
       "ind",
       "ind_id",
@@ -55,21 +61,28 @@ if (getRversion() >= "2.15.1")  {
       "ind_time",
       "left",
       "node_id",
+      "node_id1",
+      "node_id2",
       "node_idx_in_ind",
       "node_ind",
       "node_pop",
       "node_time",
       "node_x",
       "parent",
+      "path",
       "ped_id",
       "ped_p1",
       "ped_p2",
       "pop",
+      "pos",
       "py",
       "right",
       "sex",
       "time",
-      "time_f"
+      "time_f",
+      "trit",
+      "trit_c",
+      "vcf_id"
 )
 )
 }
