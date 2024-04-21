@@ -21,7 +21,7 @@ You can install the development version of MixedUpSlimSims from
 devtools::install_github("eriqande/MixedUpSlimSims")
 ```
 
-However, in order to use it, you will also have to set up some conda
+However, in order to use it, you will also have to set up a conda
 environments, and, if you are working on Mac with Apple Silicon (M1 chip
 or higher) you actually have to run your R/RStudio session using an
 x86_64 version of R that will run through Rosetta on you Mac.
@@ -29,36 +29,49 @@ x86_64 version of R that will run through Rosetta on you Mac.
 In order to get this to work on an a mac running Apple Silicon there are
 a few things that must be done.
 
-1.  Install a pyslim conda environment within the x86_64 shell.
+1.  Install a conda environment within the x86_64 shell that includes
+    `pyslim`, `bedtools` and `bcftools`. Any version of these should
+    work, so I am not specifying versions here. Installing pyslim will
+    get you `tskit` and perhaps some other conda packages that you might
+    need, though we don’t directly use `pyslim` in the package (though
+    we might in the future!). You can name this environment anything you
+    want, but it will be easiest to name it `mixed-up-parents`.
 
     ``` sh
-    mamba create -n pyslim -c conda-forge pyslim
+    mamba  create -n mixed-up-parents -c conda-forge -c bioconda \
+        conda-forge::pyslim  \
+        bedtools \
+        bcftools
     ```
 
-    Doing this requires that you have set up conda to work with x86_64.
-    You can find instructions on how to do that
+    Installing this on a modern Mac requires that you have set up conda
+    to work with x86_64. You can find instructions on how to do that
     [here](https://towardsdatascience.com/how-to-install-miniconda-x86-64-apple-m1-side-by-side-on-mac-book-m1-a476936bfaf0)
     or
     [here](https://taylorreiter.github.io/2022-04-05-Managing-multiple-architecture-specific-installations-of-conda-on-apple-M1/).
     Sadly, pyslim does not install with conda on arm64 because `kastore`
-    is not compiled for that. After that, activate the environment and
-    do `pip install tspop`./
+    is not compiled for that.
 
-    Installing pyslim will get you `tskit` and any other conda packages
-    that you need, except for a few others that we have added in there
-    later. Those additional packages must be installed into your pyslim
-    environment. You could do that when creating it, or be like us and
-    just add them later:
+2.  Update your `~/.bashrc` (or whatever file you use to initialize your
+    shell) to export the path to the conda environment you just
+    installed as the environment variable `MUP_CONDA`. My `~/.bashrc`
+    includes the lines: this:
 
     ``` sh
-    conda activate pyslim
-    mamba install -c conda-forge -c bioconda bcftools bedtools
+
+    # For MixedUpSlimSims
+    export MUP_CONDA=/Users/eriq/mambaforge-x86_64/envs/mixed-up-parents
     ```
 
-2.  Then, you need to have an x86_64 version of R that can run under
-    RStudio. I recommend that you install
-    [`rig`](https://github.com/r-lib/rig) to manage your R
-    insreetallations. Once you have it installed, you can download and
+    You should change
+    `/Users/eriq/mambaforge-x86_64/envs/mixed-up-parents` to whatever
+    the path is to your `mixed-up-parents` conda environment.
+
+3.  You need to have an x86_64 version of R that can run under RStudio.
+    (You probably don’t actually have to be able to run it under
+    RStudio, but it is convenient to be able to do so.) I recommend that
+    you install [`rig`](https://github.com/r-lib/rig) to manage your R
+    installations. Once you have it installed, you can download and
     install the latest x86_64 version of R like this:
 
     ``` sh
@@ -85,12 +98,3 @@ a few things that must be done.
     ``` sh
     rig rstudio 4.3-x86_64 MixedUpSlimSims.Rproj
     ```
-
-3.  Define the path to your pyslim conda environment, here. On my laptop
-    it is:
-
-    ``` r
-    PYSLIM_CONDA <- normalizePath("~/mambaforge-x86_64/envs/pyslim")
-    ```
-
-    But it probably will be different on yours.
