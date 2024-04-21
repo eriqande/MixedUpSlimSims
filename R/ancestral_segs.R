@@ -33,8 +33,8 @@ ancestral_segs <- function(
 
 
   # then run the python code that gets the linked ancestors table
-  #source_python(system.file("py/linking_ancestors.py", package = "MixedUpSlimSims"))
-  source_python("inst/py/linking_ancestors.py")
+  source_python(system.file("py/linking_ancestors.py", package = "MixedUpSlimSims"))
+
 
 
   # then get that back from python and prep it

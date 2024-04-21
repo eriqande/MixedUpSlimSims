@@ -5,11 +5,12 @@ format:
     embed-resources: true
     df-print: kable
 engine: knitr
-
 ---
 
-Note, this currently uses files in the repository that are not part of the repository,
-so it has to be run in the top level of the repo.
+This package is rolling along.  I have gotten enough things implemented
+that it is now time for me to start working on evaluating the "sack-o'-segs"
+model.  Another thing to do, of course, is to write some functions to simulate
+the fixed markers.
 
 
 ## Initial set up
@@ -60,17 +61,16 @@ frqs %>% head()
 Now, I have modified the SLiM script to be a little more generic for testing,
 and also for future versatility. It looks
 like this:
-```{cpp filename="Listing of SLiM-models/2-pop-10-gens-vcf-initialize.slim"}
+```{cpp filename="Listing of inst/SLiM-models/2-pop-10-gens-vcf-initialize.slim"}
 #| eval: false
-#| file: ./SLiM-models/2-pop-10-gens-vcf-initialize.slim
+#| file: ../inst/SLiM-models/2-pop-10-gens-vcf-initialize.slim
 ```
 
 From that, you can see that we want to write our input file of founder genotypes
 to `slim_input.vcf`.  So, simulate 1000 indivs for each population and then write
 it out.
 ```{r}
-frqs %>%
-  simulate_founder_genos(N = c(1000, 1000), pop_names = c("rbt", "wct")) %>%
+simulate_founder_genos(frqs, N = c(1000, 1000), pop_names = c("rbt", "wct")) %>%
   write_input_vcf(out_path = "slim_input.vcf") 
 ```
 
@@ -82,16 +82,13 @@ file names to just be of the form `pX-Y.vcf` where X is the population number
 and Y is the SLiM year.  This will facilitate downstream analysis of things
 and lets the SLiM code be much shorter.
 
-Here, before we run it, we will remove all the files produced by this test run.
-```{sh}
-rm "p1-10.vcf" "p1-11.vcf" "p1-9.vcf"  "p2-10.vcf" "p2-11.vcf" "p2-9.vcf"
-```
 
 We can just run SLiM from here. (Though for production we will run it in a temp
 directory).  We will use a system call, though we could
 have run it in a shell block.
 ```{r}
-system("slim -s 333 SLiM-models/2-pop-10-gens-vcf-initialize.slim")
+file <- system.file("SLiM-models/2-pop-10-gens-vcf-initialize.slim", package = "MixedUpSlimSims")
+system(paste("slim -s 333 ", file, collapse = " "))
 ```
 
 That seemed to work fine, and it wrote out some files:
@@ -260,11 +257,11 @@ p1_10_wide <- slim_vcf2tib("p1-10.vcf", long = FALSE)
 head(p1_10_wide[, 1:9], n = 10)
 ```
 
-In practice, most of the time you will be reading in multiple VCF files.  For that we 
+In practice, most of the time we will be reading in multiple VCF files.  For that we 
 have another function `slim_vcfs2long()` that allows you to specify
 the pops and years that you want to read. It also parses the file name and drops
 some of the columns you don't need.  The years are specified in SLiM years
-in a list named by the population.  For example, to get the years 9, 10, and 11 from
+in a list named by the population.  For example, to get the slim years 9, 10, and 11 from
 pops p1 and p2, we do this:
 ```{r}
 sample_genos_long <- slim_vcfs2tib(Flist = list(p1 = 9:11, p2 = 9:11))
