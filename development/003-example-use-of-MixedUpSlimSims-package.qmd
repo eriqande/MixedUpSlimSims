@@ -236,7 +236,7 @@ Yep, that looks about right.
 
 ## Getting into the VCFs
 
-The function `slim_vcf2long()` reads a single VCF into a long format. It uses bcftools
+The function `slim_vcf2tib()` reads a single VCF into a long format. It uses bcftools
 via a pipe to make this pretty quick and painless.  It should be noted that a long format
 for this is not space-efficient at all, but for the scale of data available for
 the trout, we can deal with that, and it makes it pretty convenient for other things.
@@ -257,7 +257,7 @@ head(p1_10_wide[, 1:9], n = 10)
 ```
 
 In practice, most of the time we will be reading in multiple VCF files.  For that we 
-have another function `slim_vcfs2long()` that allows you to specify
+have another function `slim_vcfs2tib()` that allows you to specify
 the pops and years that you want to read. It also parses the file name and drops
 some of the columns you don't need.  The years are specified in SLiM years
 in a list named by the population.  For example, to get the slim years 9, 10, and 11 from
@@ -318,7 +318,7 @@ with our variants results.
 #| fig-width: 10
 ggplot(allele_1_fracts, aes(x = exp_fract1, y = obs_fract1)) +
   geom_point(colour = "blue", alpha = 0.2) + 
-  facet_grid(slim_time ~ pop) +
+  facet_grid(as.integer(slim_time) ~ pop) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed")
 ```
 
