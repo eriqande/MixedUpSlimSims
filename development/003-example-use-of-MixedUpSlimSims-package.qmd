@@ -29,7 +29,6 @@ library(MixedUpSlimSims)
 
 ## Making allele frequencies
 
-I don't have the files that Jared used to get the allele frequencies.  That is OK.
 I am going to just make one species 0.9 at a bunch of markers and the other 0.1 at the
 same markers.  This will let us verify that things are correct according to admixture
 fractions easily.
