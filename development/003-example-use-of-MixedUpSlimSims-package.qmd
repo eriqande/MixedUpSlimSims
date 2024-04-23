@@ -25,6 +25,10 @@ library(reticulate)
 library(tidyverse)
 library(MixedUpSlimSims)
 
+# We have to do this now, since it won't get loaded properly
+# with getOption for some reason. 
+reticulate::use_condaenv(condaenv = getOption("MUP_CONDA"))
+
 ```
 
 ## Making allele frequencies
