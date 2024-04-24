@@ -24,12 +24,44 @@ After that you can get started.
 library(reticulate)
 library(tidyverse)
 library(MixedUpSlimSims)
+library(CKMRpop)  # this is necessary to use the MixedUpSlimSims::pairwise_relationship()
+                  # until I fix how data get loaded in CKMRpop.
 
 # We have to do this now, since it won't get loaded properly
-# with getOption for some reason. 
+# with getOption for some reason. The user should set the value
+# of MUP_CONDA in the .Rprofile in this directory with a line like:
+#
+# options(MUP_CONDA = "/Users/eriq/mambaforge-arm64/envs/mup")
+# 
+# Or you could just put the appropriate path as the argument to
+# condaenv.
 reticulate::use_condaenv(condaenv = getOption("MUP_CONDA"))
 
+
+
+
 ```
+
+
+### Side note about development
+
+As a side note.  For development, so that I still have the right
+condaenv after building and relaoding the package in RStudio, I
+have an uncommitted file called `R/onLoad.R` that has these contents:
+```{.r}
+# # global references to python modules (will be initialized in .onLoad)
+
+
+.onLoad <- function(libname, pkgname) {
+  reticulate::use_condaenv(condaenv = Sys.getenv("MUP_CONDA"))
+}
+
+```
+
+And I have an environment variable in my .bashrc called MUP_CONDA
+that points to the right spot.
+
+
 
 ## Making allele frequencies
 
@@ -327,4 +359,48 @@ ggplot(allele_1_fracts, aes(x = exp_fract1, y = obs_fract1)) +
 ```
 
 Perfect!
+
+
+## Finding pairwise relationships amongst the sampled individuals
+
+When we go to assess how well parentage can be done in these cases, we will be
+curious to see how often aunts and uncles end up being called as parents, etc.
+In order to make that sort of tally, we need to know the actual relationships of
+all the sampled individuals.  We have the pedigree that connects them all, and we can
+use that to find those relationships.  To do this we employ some functions from
+the [CKMRpop](https://eriqande.github.io/CKMRpop/index.html) package that Eric
+wrote.  Though we keep those wrapped in a function.  We can use it to find
+the relatives amonst all the 6000 individuals in the last 3 generations
+like this:
+```{r}
+pairwise_relats <- pairwise_relationships(
+  IT = ni$indiv_tib,
+  sample_years = 0:2,
+  num_gen = 2
+)
+```
+
+We can really quickly count up all the relatinships here that we tallied in that
+step:
+```{r}
+pairwise_relats %>%
+  count(dom_relat, max_hit)
+```
+
+Key to these relationsihps:
+
+- `A` is "avuncular", meaning aunt-niece or uncle-niece, etc.
+- `FC` is first cousin
+- `GP` is grandparent-grandchild
+- `PO1 is parent-offspring
+- `Si` is sibling
+
+The `max_hit` column records how many ancestors are shared between these individuals
+at this level of relationship.  So `Si` with `max_hit = 1` is a half-sibling, while
+`Si` with `max_hit = 2` is a full-sibling.
+
+Looking at this, it is clear that we need to modify the SLiM script so that the fish
+are not totally random mating---there are not enough full-sibling in here, compared
+to half siblings.  
+
 

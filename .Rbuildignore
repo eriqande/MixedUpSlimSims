@@ -10,3 +10,4 @@
 ^\.DS_Store$
 ^development/Unincorporated-Jared-Code$
 ^development/Post-Totality-Stuff-From-Jared$
+^slim_input\.vcf$

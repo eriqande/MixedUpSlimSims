@@ -16,6 +16,7 @@ NULL
 
 #' @importFrom dplyr arrange bind_cols bind_rows distinct filter group_by join_by lag left_join mutate n pull rename select semi_join slice starts_with summarise ungroup
 #' @importFrom ggplot2 aes facet_grid facet_wrap geom_hline geom_rect ggplot scale_fill_manual theme_bw
+#' @importFrom purrr map
 #' @importFrom readr read_tsv write_tsv
 #' @importFrom reticulate py_run_string r_to_py source_python
 #' @importFrom stats runif
@@ -47,6 +48,7 @@ if (getRversion() >= "2.15.1")  {
       "anc2",
       "anc_pop",
       "anc_popc",
+      "ancestors",
       "bp",
       "child",
       "chrom",
@@ -59,7 +61,9 @@ if (getRversion() >= "2.15.1")  {
       "ind_int",
       "ind_pop",
       "ind_time",
+      "kid",
       "left",
+      "ma",
       "node_id",
       "node_id1",
       "node_id2",
@@ -68,6 +72,7 @@ if (getRversion() >= "2.15.1")  {
       "node_pop",
       "node_time",
       "node_x",
+      "pa",
       "parent",
       "path",
       "ped_id",
@@ -76,7 +81,9 @@ if (getRversion() >= "2.15.1")  {
       "pop",
       "pos",
       "py",
+      "relatives",
       "right",
+      "sample_id",
       "sex",
       "time",
       "time_f",
