@@ -11,7 +11,7 @@ library(CKMRpop)  # this is necessary to use the MixedUpSlimSims::pairwise_relat
 # of MUP_CONDA in the .Rprofile in this directory with a line like:
 #
 # options(MUP_CONDA = "/Users/eriq/mambaforge-arm64/envs/mup")
-# 
+#
 # Or you could just put the appropriate path as the argument to
 # condaenv.
 reticulate::use_condaenv(condaenv = getOption("MUP_CONDA"))
@@ -35,7 +35,7 @@ frqs %>% head()
 
 
 simulate_founder_genos(frqs, N = c(1000, 1000), pop_names = c("rbt", "wct")) %>%
-  write_input_vcf(out_path = "slim_input.vcf") 
+  write_input_vcf(out_path = "slim_input.vcf")
 
 
 file <- system.file("SLiM-models/2-pop-10-gens-vcf-initialize.slim", package = "MixedUpSlimSims")
@@ -69,7 +69,7 @@ focal_tibble
 
 
 fnl <- get_focal_nodes(
-  ni, 
+  ni,
   Focal = focal_tibble
 )
 
@@ -139,7 +139,7 @@ allele_1_fracts <- sample_genos_long %>%
 
 
 ggplot(allele_1_fracts, aes(x = exp_fract1, y = obs_fract1)) +
-  geom_point(colour = "blue", alpha = 0.2) + 
+  geom_point(colour = "blue", alpha = 0.2) +
   facet_grid(as.integer(slim_time) ~ pop) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed")
 

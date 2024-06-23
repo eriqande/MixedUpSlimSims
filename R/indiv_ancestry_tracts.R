@@ -1,7 +1,7 @@
 #' get ancestry tracts of individuals
 #'
 #' This takes the output of `ancestral_segs()` and returns a tibble of the
-#' ancestry doses of the indivdiduals themselves.  To do this, the function
+#' ancestry doses of the individuals themselves.  To do this, the function
 #' relies on `bedtools` which must be on your path.
 #' @param A a tibble of ancestral segments like that produced by `ancestral_segs()`.
 #' @export

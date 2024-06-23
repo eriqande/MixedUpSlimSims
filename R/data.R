@@ -9,3 +9,23 @@
 #' @source Omyk_v1.0 genome available on [NCBI](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_002163495.1/).
 #' Eric got the fai via samtools and processed it into this form.
 "mykiss_chroms"
+
+
+#' Example data set of positions of species-diagnostic markers
+#'
+#' These were pulled from the Cyclone Creek data set.
+#' @format A tibble with columns:
+#' - `diag_spp`: 1 = WCT, 2 = RBT, 3 = YCT
+#' - `chrom`: the chromosome in the mykiss genome
+#' - `pos`: the position of the marker on chromosome chrom.
+"example_spp_diag_markers"
+
+
+
+#' Example indiv_segs.
+#'
+#' This is an example of the sort of output that comes out of [indiv_ancestry_tracts()].
+#' This particular data set includes 10 individuals simulated when
+#' developing this package.
+#' @format See the documentation for [indiv_ancestry_tracts()].
+"example_indiv_segs"
