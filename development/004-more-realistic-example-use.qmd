@@ -1,0 +1,410 @@
+---
+title: "More realistic Example use of MixedUpSlimSims package"
+format: 
+  html:
+    embed-resources: true
+    df-print: kable
+engine: knitr
+---
+
+This package is rolling along. In 003 I was simulated allele freqencies that made
+it easy to verify that everything was working.  Now I am going to simulate from the
+same demographic model as in 003, but I am going to provide allele frequencies like
+those in Cyclone Creek (we ignore YCT for now).  
+
+Also, I have finished up a function to simulate the fixed markers give the ancestry
+tracts of individuals.
+
+Thus, I am now ready to simulate data that I will be able to feed into MixedUpParents
+and that is what I am going to do here.  By the end of it we will have a data set
+with allele frequencies that is similar to Cyclone Creek and that should let us
+start really testing out our methods.  
+
+## Initial set up
+
+See the readme about configuring your system to be able to run this.
+
+After that you can get started.
+
+```{r}
+#| message: false
+library(reticulate)
+library(tidyverse)
+library(MixedUpSlimSims)
+library(CKMRpop)  # this is necessary to use the MixedUpSlimSims::pairwise_relationship()
+                  # until I fix how data get loaded in CKMRpop.
+
+# We have to do this now, since it won't get loaded properly
+# with getOption for some reason. The user should set the value
+# of MUP_CONDA in the .Rprofile in this directory with a line like:
+#
+# options(MUP_CONDA = "/Users/eriq/mambaforge-arm64/envs/mup")
+# 
+# Or you could just put the appropriate path as the argument to
+# condaenv.
+reticulate::use_condaenv(condaenv = getOption("MUP_CONDA"))
+
+
+
+
+```
+
+
+### Side note about development
+
+As a side note.  For development, so that I still have the right
+condaenv after building and relaoding the package in RStudio, I
+have an uncommitted file called `R/onLoad.R` that has these contents:
+```{.r}
+# # global references to python modules (will be initialized in .onLoad)
+
+
+.onLoad <- function(libname, pkgname) {
+  reticulate::use_condaenv(condaenv = Sys.getenv("MUP_CONDA"))
+}
+
+```
+
+And I have an environment variable in my .bashrc called MUP_CONDA
+that points to the right spot.
+
+
+
+## Making allele frequencies
+
+I am boing to use the allele frequencies we estimated for Cyclone Creek.  I have
+put those into `inputs`.  I estimate them in some stuff in the MixedUpParents package.
+
+We just have to give them cumulative positions.  We have a function for that now, too!
+```{r}
+cc_freqs <- read_csv("inputs/cyclone-creeo-variable-markers-freqs.csv")
+cc_freqs
+```
+A here is WCT and B is RBT. And, in our simulations, population 1 is like WCT getting a steady
+flow of RBT and population 2 is like RBT just being RBT and continually coming into the WCT
+habitat. So, we want A to be 1 and B to be 2.
+
+Now we need to get them in the form that we need for `simulate_founder_genos()`.
+```{r}
+cc_freqs2 <- cc_freqs %>%
+  mutate(chrom = as.character(chrom_f)) %>%
+  select(-chrom_f) %>%
+  cumulative_genome_position(mykiss_chroms) 
+
+frqs <- cc_freqs2 %>%
+  rename(af1 = A, af2 = B, POS = cPOS) %>%
+  select(POS, af1, af2)
+```
+
+
+
+We want to write our input file of founder genotypes
+to `slim_input.vcf`.  So, simulate 1000 indivs for each population and then write
+it out.
+```{r}
+simulate_founder_genos(frqs, N = c(1000, 1000), pop_names = c("wct", "rbt")) %>%
+  write_input_vcf(out_path = "slim_input.vcf") 
+```
+
+
+## Running SLiM
+
+
+We can just run SLiM from here. (Though for production we will run it in a temp
+directory).  We will use a system call, though we could
+have run it in a shell block.
+```{r}
+file <- system.file("SLiM-models/2-pop-10-gens-vcf-initialize.slim", package = "MixedUpSlimSims")
+system(paste("slim -s 333 ", file, collapse = " "))
+```
+
+That seemed to work fine, and it wrote out some files:
+```{r}
+dir(pattern = "p[0-9]+-[0-9]+\\.vcf")
+```
+
+## Processing the trees
+
+There are 11 years of simulation, so we want to get things for tree-seq years
+0 to 10 from populations 1 and 2. We do that like this:
+```{r}
+# read the trees. Dump just captures the python code that was
+# evaluated to get things in the py variable in the global env.
+dump <- read_and_filter_trees(
+  trees_path = "SLiM.trees",
+  years_list = list(`1` = 0:10, `2` = 0:10)
+)
+
+```
+
+
+Now that we have read and simplified that tree into the `py$ts` object,
+we can turn it into tibbles of nodes and indivs easily:
+```{r}
+ni <- ts_nodes_and_inds(py$ts)
+```
+
+Now we get a vector of the founder nodes.  These are the ones
+that existed at time 10 (counting backwards from 0) in TS time,
+which is time 1 in SLiM time.
+```{r}
+founders <- founder_node_ids_and_pops(ni, 10)
+```
+
+Now we want to get the focal nodes.  These could be just the individuals
+in the final three generations, but I want to plot pictures of the admixture
+process in action, so I am going to make the focal individuals everyone
+in SLiM year 2 and forward (so, TS time 9 and forward to 0), in both pops 1 and 2.
+We designate the desired years and pops in a tibble.  The population labels
+that come out of SLiM and are put into tskit at this point are base-1 indexed,
+so they are named 1 and 2, not 0 and 1.
+```{r}
+focal_tibble <- tibble(
+  pop = rep(c(1,2), each = 10),
+  time = rep(0:9, 2)
+)
+
+focal_tibble
+```
+
+And we can use it in here like so:
+```{r}
+fnl <- get_focal_nodes(
+  ni, 
+  Focal = focal_tibble
+)
+```
+
+Note that `fnl` has these focal nodes divided into different years, and the following
+function cycles over those years and finds ancestors for each separately, because
+otherwise some samples become the linked ancestors (in `link_ancestors` from tskit),
+thus exluding the actual founders (this is why we couldn't use
+[tspop](https://tspop.readthedocs.io/en/latest/tspop.html) for this directly---that
+does not seem to handle multiple cohorts of samples)
+which is not what we want here.
+
+Now we get the ancestral segments in all of them.
+```{r}
+segments_tib <- ancestral_segs(
+  ts = py$ts,
+  focal_nodes_list = fnl,
+  founder_nodes = founders$nodes,
+  nodes_tib = ni$nodes_tib,
+  indiv_tib = ni$indiv_tib
+)
+```
+
+
+## Plotting the haploid ancestry segments
+
+This is done with a simple function:
+```{r}
+#| fig-height: 10
+#| fig-width: 8
+plot_ancestry_of_genomes(segments_tib)
+```
+
+
+## Obtaining and plotting the ancestry tracts within each individual
+
+There is a function for this:
+```{r}
+#| message: false
+indiv_segs <- indiv_ancestry_tracts(segments_tib)
+```
+
+And we can plot those like this:
+```{r}
+#| fig-height: 10
+#| fig-width: 8
+plot_ancestry_tracts(indiv_segs, chrom_ends = mykiss_chroms)
+```
+
+The colors denote the different ancestry combinations, which are coded in decimal
+equivalents of trits or ternary numbers.  2 = 2 doses from p1; 4 = 1 dose from p1
+and one from p2; 6 is two doses from p2.  This can extend to more than two
+species.  
+
+Perhaps more explanation is needed about the trits.  We envision the number of
+doses from each population as a ternary number.  In a ternary number, each 
+digit can be a 0, 1, or 2.  In the 1's column ($3^0$), the 0, 1 or 2, signify
+just that---a 0, 1, or 2.  In the 3's column, the values are $0=0$, $1=3$ and 
+$2=6$.  And so forth (just like binary, but base 3). Since we are counting doses
+the sum of all the digits themselves must be two.  Here are some examples for
+a three-species case:
+
+- 002: two copies from species 1 --- $3^2 \times 0 + 3^1 \times 0 + 3^0 \times 2 = 2$
+- 011: one copy from species 1 and one copy from species 2 --- $3^2 \times 0 + 3^1 \times 1 + 3^0 \times 1 = 4$
+- 020: two copies from species 2 --- $3^2 \times 0 + 3^1 \times 2 + 3^0 \times 0 = 6$
+- 200: two copies from species 3 --- $3^2 \times 2 + 3^1 \times 0 + 3^0 \times 0 = 18$
+
+Coding things this way would make it easy to extend to even more species in the future,
+if needed.
+
+## Calculating admixture fractions from the ancestry tracts
+
+This is easily done.
+```{r}
+Q_values <- admixture_fracts_from_ancestry_tracts(indiv_segs)
+```
+
+
+## Getting into the VCFs
+
+The function `slim_vcf2tib()` reads a single VCF into a long format. It uses bcftools
+via a pipe to make this pretty quick and painless.  It should be noted that a long format
+for this is not space-efficient at all, but for the scale of data available for
+the trout, we can deal with that, and it makes it pretty convenient for other things.
+
+
+```{r}
+p1_10_genos <- slim_vcf2tib("p1-10.vcf")
+head(p1_10_genos, n = 10)
+```
+
+Note that you can pass that function `long = FALSE` and it will return a wide tibble
+that might be useful.  (Though, in practice it only saves about 50% of the memory...).
+```{r}
+p1_10_wide <- slim_vcf2tib("p1-10.vcf", long = FALSE)
+
+# look at a piece of that
+head(p1_10_wide[, 1:9], n = 10)
+```
+
+In practice, most of the time we will be reading in multiple VCF files.  For that we 
+have another function `slim_vcfs2tib()` that allows you to specify
+the pops and years that you want to read. It also parses the file name and drops
+some of the columns you don't need.  The years are specified in SLiM years
+in a list named by the population.  For example, to get the slim years 9, 10, and 11 from
+pops p1 and p2, we do this:
+```{r}
+sample_genos_long <- slim_vcfs2tib(Flist = list(p1 = 9:11, p2 = 9:11))
+```
+
+That is a big tibble with 7.5 million rows, but it does make it quick and easy
+to calculate some things as demonstrated in the next section.
+
+### A Note on Nomenclature
+
+Throughout this package, we use `ped_id` to be the Pedigree ID _of the individual_.
+SLiM's VCF has a `slimGenomePedigreeIDs` field.  These are the pedigree IDs of the
+different haplotypes/gametes, _not_ of the individuals.  We don't really use those
+much after we get the individual's pedigree IDs.  So, keep in mind...`ped_id` for us
+is all about pedigree ID _of the individual_.  (Same with `ped_p1` and `ped_p2`---those
+are the _individual_ pedigree IDs of the parents).
+
+## Finding pairwise relationships amongst the sampled individuals
+
+When we go to assess how well parentage can be done in these cases, we will be
+curious to see how often aunts and uncles end up being called as parents, etc.
+In order to make that sort of tally, we need to know the actual relationships of
+all the sampled individuals.  We have the pedigree that connects them all, and we can
+use that to find those relationships.  To do this we employ some functions from
+the [CKMRpop](https://eriqande.github.io/CKMRpop/index.html) package that Eric
+wrote.  Though we keep those wrapped in a function.  We can use it to find
+the relatives amonst all the 6000 individuals in the last 3 generations
+like this:
+```{r}
+pairwise_relats <- pairwise_relationships(
+  IT = ni$indiv_tib,
+  sample_years = 0:2,
+  num_gen = 2
+)
+```
+
+We can really quickly count up all the relationships here that we tallied in that
+step:
+```{r}
+pairwise_relats %>%
+  count(dom_relat, max_hit)
+```
+
+Key to these relationsihps:
+
+- `A` is "avuncular", meaning aunt-niece or uncle-niece, etc.
+- `FC` is first cousin
+- `GP` is grandparent-grandchild
+- `PO1 is parent-offspring
+- `Si` is sibling
+
+The `max_hit` column records how many ancestors are shared between these individuals
+at this level of relationship.  So `Si` with `max_hit = 1` is a half-sibling, while
+`Si` with `max_hit = 2` is a full-sibling.
+
+Looking at this, it is clear that we need to modify the SLiM script so that the fish
+are not totally random mating---there are not enough full-sibling in here, compared
+to half siblings.  
+
+
+## Simulating the diagnostic markers
+
+We can simulate diagnostic markers in all of the individuals in the last three
+years pretty easily.  The cyclone creek diagnostic markers are available as
+package data in MixedUpSlimSims.  We will place them in
+individuals of the last three years.
+```{r}
+sim_diag <- example_spp_diag_markers %>%
+  cumulative_genome_position(mykiss_chroms) %>%
+  rename(diag_spp_idx = diag_spp) %>%
+  place_diagnostic_markers(IndivSegs = indiv_segs %>% filter(ind_time %in% 0:2))
+```
+
+# Writing out those two data sets
+
+
+```{r}
+set.seed(1)
+
+subsamp <- sample(unique(sim_diag$ped_id), size = 2500, replace = FALSE)
+
+sim_diag_ready <- sim_diag %>%
+  filter(ped_id %in% subsamp) %>%
+  rename(diag_spp = diag_spp_idx) %>%
+  mutate(diag_spp = case_match(diag_spp, 1 ~ "WCT", 2 ~ "RBT", 3 ~ "YCT")) %>%
+  rename(n = geno, indiv = ped_id) %>%
+  mutate(indiv = as.character(indiv), pos = as.integer(pos), n = as.integer(n))
+
+# the variable markers are a little more work because we have to get back to the
+# original mykiss genome positions
+cc_freqs3 <- cc_freqs2 %>%
+  select(pos, chrom, cPOS)
+
+sim_var_snps_ready <- sample_genos_long %>%
+  filter(ped_id %in% subsamp) %>%
+  select(pos, ped_id, haplo, allele)  %>%
+  rename(cPOS = pos) %>%
+  left_join(cc_freqs3, by = join_by(cPOS)) %>%
+  select(chrom, pos, ped_id, allele) %>%
+  group_by(chrom, pos, ped_id) %>%
+  summarise(n = sum(as.integer(allele))) %>%
+  ungroup() %>%
+  arrange(ped_id, chrom, pos) %>%
+  rename(indiv = ped_id) %>%
+  mutate(indiv = as.character(indiv), pos = as.integer(pos))
+
+```
+
+And we also want to store some information about all the individuals---basically the metadata
+and the pedigree, and the true Q-values.  That is all stored in the Q_values variable. And I also
+want to keep the actual segments for each of the fish that we have the genotypes for.  
+```{r}
+Q_values
+
+true_segs <- indiv_segs %>%
+  filter(ped_id %in% subsamp)
+```
+
+I am going to go ahead and write these two marker data sets out along with the "truth".
+
+```{r}
+dir.create("results/004", showWarnings = FALSE, recursive = TRUE)
+sim_results <- list(
+  spp_diag = sim_diag_ready,
+  var_snps = sim_var_snps_ready,
+  metaQ = Q_values,
+  true_segs = true_segs,
+  cumul_genome = mykiss_chroms,
+  alle_freqs = cc_freqs
+)
+write_rds(sim_results, file = "results/004/sim_results.rds", compress = "xz")
+```
