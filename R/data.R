@@ -29,3 +29,21 @@
 #' developing this package.
 #' @format See the documentation for [indiv_ancestry_tracts()].
 "example_indiv_segs"
+
+
+
+#' Example frequencies of alleles in two ancestries
+#'
+#' These were estimated from cyclone creek and are mapped to the
+#' mykiss genome of `mykiss_chroms`
+#' @format A tibble
+"cyclone_creek_var_freqs"
+
+
+#' Diagnostic markers by name
+#'
+#' These are WCT, RBT, and YCT diagnostic markers.  Identical to
+#' `example_spp_diag_markers` except that the diag_spp column holds
+#' letter codes for the subspecies.
+#' @format A tibble
+"wct_rbt_yct_diagnostic_markers"

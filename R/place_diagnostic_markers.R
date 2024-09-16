@@ -33,8 +33,8 @@
 #' @examples
 #' # Prepare Markers. Name the columns right, and get cumulative cPOS in there.
 #' M <- example_spp_diag_markers %>%
-#'   filter(diag_spp < 3) %>%
-#'   rename(diag_spp_idx = diag_spp) %>%
+#'   dplyr::filter(diag_spp < 3) %>%
+#'   dplyr::rename(diag_spp_idx = diag_spp) %>%
 #'   cumulative_genome_position(Cumul = mykiss_chroms)
 #'
 #' # Now, also get some example indiv-segs. We have some as a package

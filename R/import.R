@@ -22,7 +22,7 @@ NULL
 #' @importFrom stats runif
 #' @importFrom stringr str_c str_detect str_replace str_split
 #' @importFrom tibble as_tibble tibble
-#' @importFrom tidyr extract nest pivot_longer
+#' @importFrom tidyr expand_grid extract nest pivot_longer
 NULL
 
 
@@ -44,19 +44,28 @@ if (getRversion() >= "2.15.1")  {
       "X8",
       "admix_fract",
       "admixture_1_score",
+      "allele",
       "anc1",
       "anc2",
       "anc_pop",
       "anc_popc",
       "ancestors",
+      "big_chrom",
       "bp",
       "child",
       "chrom",
+      "cPOS",
+      "cpm1",
+      "cumul_start",
+      "diag_spp",
+      "diag_spp_idx",
       "dose",
       "dose_c",
       "geno",
       "grp",
+      "haplo",
       "ind",
+      "indiv",
       "ind_id",
       "ind_int",
       "ind_pop",
