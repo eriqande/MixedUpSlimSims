@@ -93,7 +93,7 @@ marker_pop_time_list <- list(p1 = 9:11, p2 = 9:11)
 diagnostic_markers <- wct_rbt_yct_diagnostic_markers
 
 \dontrun{
-# this takes a long time, so don't run it on Check
+# this takes more time than CRAN likes, so don't run it on Check
 simmed <- slim_sim_a_dataset(
   AF = AF,
   genome_info = genome_info,

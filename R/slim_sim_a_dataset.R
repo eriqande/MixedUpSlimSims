@@ -61,7 +61,7 @@
 #' diagnostic_markers <- wct_rbt_yct_diagnostic_markers
 #'
 #' \dontrun{
-#' # this takes a long time, so don't run it on Check
+#' # this takes more time than CRAN likes, so don't run it on Check
 #' simmed <- slim_sim_a_dataset(
 #'   AF = AF,
 #'   genome_info = genome_info,
@@ -239,6 +239,7 @@ slim_sim_a_dataset <- function(
     trueQ_and_pedigree = Q_values,
     true_segs = indiv_segs,
     true_var_freqs = AF,
-    spp_names = spp_names
+    spp_names = spp_names,
+    pairwise_relats = pairwise_relats
   )
 }

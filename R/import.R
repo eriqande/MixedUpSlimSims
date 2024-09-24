@@ -14,7 +14,7 @@
 NULL
 
 
-#' @importFrom dplyr arrange bind_cols bind_rows distinct filter group_by join_by lag left_join mutate n pull rename select semi_join slice starts_with summarise ungroup
+#' @importFrom dplyr arrange bind_cols bind_rows case_when distinct filter group_by join_by lag left_join mutate n n_distinct pull rename select semi_join slice slice_sample starts_with summarise ungroup
 #' @importFrom ggplot2 aes facet_grid facet_wrap geom_hline geom_rect ggplot scale_fill_manual theme_bw
 #' @importFrom purrr map
 #' @importFrom readr read_tsv write_tsv
@@ -64,6 +64,8 @@ if (getRversion() >= "2.15.1")  {
       "geno",
       "grp",
       "haplo",
+      "id_1",
+      "id_2",
       "ind",
       "indiv",
       "ind_id",
@@ -90,6 +92,9 @@ if (getRversion() >= "2.15.1")  {
       "pop",
       "pos",
       "py",
+      "rando",
+      "rando1",
+      "rando2",
       "relatives",
       "right",
       "sample_id",

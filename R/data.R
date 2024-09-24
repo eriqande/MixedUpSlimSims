@@ -47,3 +47,12 @@
 #' letter codes for the subspecies.
 #' @format A tibble
 "wct_rbt_yct_diagnostic_markers"
+
+
+#' Example output of `slim_sim_a_dataset()`
+#'
+#' This is just some output from running the example of
+#' `slim_sim_a_dataset()` so that it can be used in developing
+#' and illustrating the function `tweak_slim_simmed_data.R`.
+#'
+"slim_sim_dataset_example"
