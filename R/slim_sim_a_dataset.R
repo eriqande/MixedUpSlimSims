@@ -194,19 +194,23 @@ slim_sim_a_dataset <- function(
   if(length(extra_diags) > 0) {
     warning("AF file has additional species ", paste(extra_diags, collapse = ", "), " not found in AF. This could be by design...If so, then disregard this warning.")
   }
+  # now, regardless, we need to get all the diagnostic species names, and
+  # we must make sure that the ones shared with the spp_names are in the
+  # correct order (and first) with the remaining ones in whatever order
+  # is needed (after the first ones...).
+  diag_species_names <- c(spp_names, extra_diags)
 
   # get the diagnostic markers only for the individuals that we have sampled
   # variable-marker genotypes for, replace the species names instead of the
   # indexes in there, and reconfigure some column names, etc.
   simulated_diagnostic_markers <- diagnostic_markers %>%
-    filter(diag_spp %in% spp_names) %>%
-    mutate(diag_spp_idx = as.integer(factor(diag_spp, levels = spp_names))) %>%
+    mutate(diag_spp_idx = as.integer(factor(diag_spp, levels = diag_species_names))) %>%
     cumulative_genome_position(genome_info) %>%
     place_diagnostic_markers(
       IndivSegs = indiv_segs %>%
         filter(ped_id %in% unique(sample_genos_long$ped_id))
     ) %>%
-    mutate(diag_spp = spp_names[as.integer(diag_spp_idx)], .before = diag_spp_idx) %>%
+    mutate(diag_spp = diag_species_names[as.integer(diag_spp_idx)], .before = diag_spp_idx) %>%
     select(-diag_spp_idx) %>%
     rename(
       n = geno,

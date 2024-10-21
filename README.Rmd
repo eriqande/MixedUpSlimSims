@@ -29,20 +29,19 @@ in terms of the ancestry tracts within the simulated individuals by way of
 You can install the development version of MixedUpSlimSims from [GitHub](https://github.com/) with:
 
 ``` r
-# install.packages("devtools")
-devtools::install_github("eriqande/MixedUpSlimSims")
+# install.packages("remotes")
+remotes::install_github("eriqande/MixedUpSlimSims")
 ```
 
-However, in order to use it, you will also have to set up a conda environments,
-and, if you are working on Mac with Apple Silicon (M1 chip or higher) you actually
-have to run your R/RStudio session using an x86_64 version of R that will
-run through Rosetta on you Mac.
+However, in order to use it, you will also have to set up a conda environment,
+and, if you are working on Mac with Apple Silicon (M1 chip or higher) you have to
+compile up some tskit related packages that are not yet available on conda
+for arm64.  (**UPDATE** it looks like kastore is now avaiable on conda for
+arm64, so that simplifies things.)
 
-In order to get this to work on an a mac running Apple Silicon
-there are a few things that must be done.
 
-1.  Install a conda environment within the x86_64 shell that includes `tskit`, `numpy`, 
-    `pandas`, and bedtools` and `bcftools`.  Any version of these should work, so I am not
+1.  Install a conda environment that includes `slim`, `tskit`, `numpy`, 
+    `pandas`, and `bedtools` and `bcftools`.  Any version of these should work, so I am not
     specifying versions here. You can name
     this environment anything you want,
     but it will be easiest to name it `mixed-up-parents`.
@@ -51,17 +50,24 @@ there are a few things that must be done.
     mamba  create -n mixed-up-parents -c conda-forge -c bioconda \
         anaconda::pandas \
         conda-forge::numpy \
+        conda-forge::slim \
         conda-forge::tskit  \
         bedtools \
         bcftools
     ```
 
-    Installing this on a modern Mac requires that you have set up conda to
-    work with x86_64. You can find
-    instructions on how to do that [here](https://towardsdatascience.com/how-to-install-miniconda-x86-64-apple-m1-side-by-side-on-mac-book-m1-a476936bfaf0) or
-    [here](https://taylorreiter.github.io/2022-04-05-Managing-multiple-architecture-specific-installations-of-conda-on-apple-M1/).
-    Sadly, pyslim does not install with conda on arm64 because `kastore` is not compiled for that.  
-
+2.  **On SEDNA:**  If you are working on the SEDNA cluster, after you have installed
+    the above conda environment, you have to do an additional step to keep pandas
+    from failing when looking for a version of GLIBCXX that does not exist on the
+    system:
+    
+    ```{sh, eval=FALSE}
+    conda activate mixed-up-parents  # activate the environment
+    pip install pandas --no-cache-dir --force-reinstall  # reinstall pandas in there
+    ```
+    
+    You should not have to do this unless you get errors that look like:
+    `ImportError: /lib64/libstdc++.so.6: version 'GLIBCXX_3.4.29' not found`
 
 2.  Update your `~/.bashrc` (or whatever file you use to initialize your shell)
     to export the path to the conda environment you just installed as the
@@ -69,43 +75,15 @@ there are a few things that must be done.
     this:
     
     ```{sh, eval=FALSE}
-    
     # For MixedUpSlimSims
     export MUP_CONDA=/Users/eriq/mambaforge-x86_64/envs/mixed-up-parents
-    
     ```
     
     You should change `/Users/eriq/mambaforge-x86_64/envs/mixed-up-parents`
     to whatever the path is to your `mixed-up-parents` conda environment. 
     
 
-2.  You need to have an x86_64 version of R that can run under RStudio. (You probably don't
-    actually have to be able to run it under RStudio, but it is convenient to be able to
-    do so.) I recommend that you install [`rig`](https://github.com/r-lib/rig) to manage
-    your R installations. Once you have it installed, you can download and install the
-    latest x86_64 version of R like this:
 
-    ```{sh, eval=FALSE}
-    rig add -a x86_64 release
-    ```
-
-    Then you can make sure that it was installed, and see what its name is by using `rig list`:
-
-    ```{sh, eval=FALSE}
-    rig list
-        
-    # the output should look something like this:
-    * name        version    aliases
-    ------------------------------------------
-      4.2-arm64   (R 4.2.0)
-    * 4.3-arm64   (R 4.3.3)
-      4.3-x86_64  (R 4.3.3)  release
-    ```
-
-    And from that you can open this RStudio project by navigating to the project directory on your shell and doing:
-
-    ```{sh, eval=FALSE}
-    rig rstudio 4.3-x86_64 MixedUpSlimSims.Rproj
-    ```
-
+When using this on the cluster, you should activate the conda environment before
+entering R.
 

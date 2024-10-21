@@ -9,8 +9,8 @@ tweak_slim_simmed_data(
   NV = NA,
   ND = NA,
   S = NA,
-  RV = NA,
-  RD = NA,
+  MV = NA,
+  MD = NA,
   EV = NA,
   ED = NA
 )
@@ -32,14 +32,13 @@ a warning is issued and the full set of markers is returned.}
 \emph{retained}.  So, if you want to have sampled 40\% of the population
 then you would set S = 0.4.}
 
-\item{RV}{the missing data retainment data rate for variable markers.  This is
-applied randomly to each marker in each individual, after subsampling
-to NV markers.  A fraction 1 - RV is expected to be missing.}
+\item{MV}{the missing data data rate for variable markers. Each genotype in the
+variable-marker data set (after subsampling to NV markers) has an independent
+probability of MV of being missing applied.}
 
-\item{RD}{the missing data retainment rate for diagnostic markers.  This is
-applied randomly to each marker in each individual, after subsampling
-to ND markers.  A fraction 1 - RD is expected to be missing after
-this.}
+\item{MD}{the missing data data rate for diagnostic markers. Each genotype in the
+variable-marker data set (after subsampling to NV markers) has an independent
+probability of MV of being missing applied.}
 
 \item{EV}{the probability that any non-missing variable marker genotype in an individual
 has a genotyping error.  For a genotype that is simulated to have
@@ -66,7 +65,7 @@ you can use this function to do the following:
 \item Downsample to a consistent subsample of some number NV variable
 markers and/or some number ND diagnostic ones.
 \item Create missing data at the remaining markers at a simple rate
-RV or RD across variable or diagnostic markers, respectively.
+MV or MD across variable or diagnostic markers, respectively.
 \item Randomly toss each individual in the sample from the sample
 at a single rate S across all individuals, pops and times.
 \item Downsample the number of individuals to a specific number or
@@ -83,8 +82,8 @@ tweaked <- tweak_slim_simmed_data(
   NV = 600,
   ND = 1000,
   S = 0.7,
-  RV = 0.9,
-  RD = 0.85,
+  MV = 0.1,
+  MD = 0.15,
   EV = 0.01,
   ED = 0.005
 )

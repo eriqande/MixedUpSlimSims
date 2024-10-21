@@ -5,7 +5,7 @@
 #' - Downsample to a consistent subsample of some number NV variable
 #'   markers and/or some number ND diagnostic ones.
 #' - Create missing data at the remaining markers at a simple rate
-#'   RV or RD across variable or diagnostic markers, respectively.
+#'   MV or MD across variable or diagnostic markers, respectively.
 #' - Randomly toss each individual in the sample from the sample
 #'   at a single rate S across all individuals, pops and times.
 #' - Downsample the number of individuals to a specific number or
@@ -22,13 +22,12 @@
 #' @param S the fraction of sampled individuals to be randomly
 #' _retained_.  So, if you want to have sampled 40% of the population
 #' then you would set S = 0.4.
-#' @param RV the missing data retainment data rate for variable markers.  This is
-#' applied randomly to each marker in each individual, after subsampling
-#' to NV markers.  A fraction 1 - RV is expected to be missing.
-#' @param RD the missing data retainment rate for diagnostic markers.  This is
-#' applied randomly to each marker in each individual, after subsampling
-#' to ND markers.  A fraction 1 - RD is expected to be missing after
-#' this.
+#' @param MV the missing data data rate for variable markers. Each genotype in the
+#' variable-marker data set (after subsampling to NV markers) has an independent
+#' probability of MV of being missing applied.
+#' @param MD the missing data data rate for diagnostic markers. Each genotype in the
+#' variable-marker data set (after subsampling to NV markers) has an independent
+#' probability of MV of being missing applied.
 #' @param EV the probability that any non-missing variable marker genotype in an individual
 #' has a genotyping error.  For a genotype that is simulated to have
 #' a genotyping error, if the true genotype is a 1 we choose either 0 or 1, each
@@ -54,8 +53,8 @@
 #'   NV = 600,
 #'   ND = 1000,
 #'   S = 0.7,
-#'   RV = 0.9,
-#'   RD = 0.85,
+#'   MV = 0.1,
+#'   MD = 0.15,
 #'   EV = 0.01,
 #'   ED = 0.005
 #' )
@@ -66,8 +65,8 @@ tweak_slim_simmed_data <- function(
   NV = NA,
   ND = NA,
   S = NA,
-  RV = NA,
-  RD = NA,
+  MV = NA,
+  MD = NA,
   EV = NA,
   ED = NA
 ) {
@@ -136,20 +135,20 @@ tweak_slim_simmed_data <- function(
 
 
   #### Create missing data in the variable markers ####
-  if(is.na(RV)) { # return the full complement
+  if(is.na(MV)) { # return the full complement
     vm4 <- vm3
-  } else { # otherwise we randomly make things as missing
+  } else { # otherwise we randomly make things missing
 
-    if(RV < 0 || RV > 1) {
-      stop("RV is ", RV, ", but it must be between 0 and 1 inclusive")
+    if(MV < 0 || MV > 1) {
+      stop("MV is ", MV, ", but it must be between 0 and 1 inclusive")
     }
 
     vm4 <- vm3 %>%
       mutate(
         rando = runif(n = n()),
         n = case_when(
-          rando < RV ~ n,
-          TRUE ~ NA_integer_
+          rando < MV ~ NA_integer_,
+          TRUE ~ n
         )
       ) %>%
       select(-rando)
@@ -157,20 +156,20 @@ tweak_slim_simmed_data <- function(
 
 
   #### Create missing data in the diagnostic markers ####
-  if(is.na(RD)) { # return the full complement
+  if(is.na(MD)) { # return the full complement
     dm4 <- dm3
   } else { # otherwise we randomly make things as missing
 
-    if(RD < 0 || RD > 1) {
-      stop("RD is ", RD, ", but it must be between 0 and 1 inclusive")
+    if(MD < 0 || MD > 1) {
+      stop("MD is ", MD, ", but it must be between 0 and 1 inclusive")
     }
 
     dm4 <- dm3 %>%
       mutate(
         rando = runif(n = n()),
         n = case_when(
-          rando < RD ~ n,
-          TRUE ~ NA_integer_
+          rando < MD ~ NA_integer_,
+          TRUE ~ n
         )
       ) %>%
       select(-rando)
@@ -228,22 +227,37 @@ tweak_slim_simmed_data <- function(
       select(-rando1, -rando2)
   }
 
+  # break the n_orig off of vm5 and dm5
+  n_orig_diagnostic <- dm5 %>%
+    select(n_orig)
+  n_orig_variable <- vm5 %>%
+    select(n_orig)
+
+  dm6 <- dm5 %>%
+    select(-n_orig)
+  vm6 <- vm5 %>%
+    select(-n_orig)
+
   # go ahead and return things
-  list(
+  ret <- list(
     tweak_pars = list(
       NV = NV,
       ND = ND,
       S = S,
-      RV = RV,
-      RD = RD,
+      MV = MV,
+      MD = MD,
       EV = EV,
       ED = ED
     ),
-    variable_snps = vm5,
-    spp_diag_snps = dm5,
-    spp_names = X$spp_names,
-    pairwise_relats = X$pairwise_relats %>%
-      filter((id_1 %in% keeper_samples$indiv) & (id_2 %in% keeper_samples$indiv))
+    variable_snps = vm6,
+    spp_diag_snps = dm6,
+    spp_names = X$spp_names
   )
 
+  if(!is.na(S)) {
+    ret$pairwise_relats = X$pairwise_relats %>%
+      filter((id_1 %in% keeper_samples$indiv) & (id_2 %in% keeper_samples$indiv))
+  }
+
+  ret
 }
