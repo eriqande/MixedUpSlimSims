@@ -116,7 +116,7 @@ slim_sim_a_dataset <- function(
 
   # run SLiM in the temp directory
   abs_slim_file <- normalizePath(slim_file)
-  CALL <- paste("cd", TMPDIR, "; slim -s ", slim_seed, abs_slim_file, collapse = " ")
+  CALL <- paste("cd", TMPDIR, "; slim -s ", slim_seed, abs_slim_file, " > stout_from_slim.txt", collapse = " ")
   system(CALL)
 
   # collect the trees from the simulation
