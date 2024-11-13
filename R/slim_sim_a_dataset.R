@@ -173,8 +173,8 @@ slim_sim_a_dataset <- function(
 
   # Use the pedigree to get the relationships between the sampled
   # indivduals.
-  require(CKMRpop)  # this is a hack for now because with the current version of
-                    # CKMRpop it fails by not finding the CKMRpop object, relationship_zone_names
+  require(CKMRpop)  # loading this library is a hack for now because with the current version of
+                    # CKMRpop it fails by not finding the CKMRpop object, `relationship_zone_names`
   pairwise_relats <- pairwise_relationships(
     IT = ni$indiv_tib,
     sample_years = 0:2,
@@ -244,6 +244,7 @@ slim_sim_a_dataset <- function(
     true_segs = indiv_segs,
     true_var_freqs = AF,
     spp_names = spp_names,
-    pairwise_relats = pairwise_relats
+    pairwise_relats = pairwise_relats,
+    indiv_segs = indiv_segs
   )
 }
