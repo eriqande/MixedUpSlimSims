@@ -192,7 +192,7 @@ slim_sim_a_dataset <- function(
   }
   extra_diags <- setdiff(diags, spp_names)
   if(length(extra_diags) > 0) {
-    warning("AF file has additional species ", paste(extra_diags, collapse = ", "), " not found in AF. This could be by design...If so, then disregard this warning.")
+    message("AF file has additional species ", paste(extra_diags, collapse = ", "), " not found in AF. This could be by design...If so, then disregard this warning.")
   }
   # now, regardless, we need to get all the diagnostic species names, and
   # we must make sure that the ones shared with the spp_names are in the
