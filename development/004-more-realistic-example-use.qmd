@@ -38,14 +38,22 @@ library(CKMRpop)  # this is necessary to use the MixedUpSlimSims::pairwise_relat
 # with getOption for some reason. The user should set the value
 # of MUP_CONDA in the .Rprofile in this directory with a line like:
 #
-# options(MUP_CONDA = "/Users/eriq/mambaforge-arm64/envs/mup")
+# options(MUP_CONDA = "/Users/eriq/miniforge3/envs/mixed-up-parents")
+
+# but the .Rprofile does not seem to stick with running within Quarto,
+# so let's make sure we just define those here.
+
+options(MUP_CONDA = "/Users/eriq/miniforge3/envs/mixed-up-parents")
+Sys.setenv(MUP_CONDA = "/Users/eriq/miniforge3/envs/mixed-up-parents")
+
 # 
 # Or you could just put the appropriate path as the argument to
 # condaenv.
 reticulate::use_condaenv(condaenv = getOption("MUP_CONDA"))
 
 
-
+# also set the path for system calls here
+Sys.setenv(PATH = paste0(getOption("MUP_CONDA"), "/bin:", Sys.getenv("PATH")))
 
 ```
 

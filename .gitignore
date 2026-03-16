@@ -11,3 +11,4 @@ default.profraw
 003-example-use-of-MixedUpSlimSims-package.html
 /*.vcf
 /*.trees
+inst/doc

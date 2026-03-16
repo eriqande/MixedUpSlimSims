@@ -1,0 +1,10 @@
+*.html
+*.R
+p1-10.vcf
+p1-11.vcf
+p1-9.vcf
+p2-10.vcf
+p2-11.vcf
+p2-9.vcf
+slim_input.vcf
+SLiM.trees

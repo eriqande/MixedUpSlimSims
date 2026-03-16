@@ -1,0 +1,80 @@
+url: https://eriqande.github.io/MixedUpSlimSims
+
+template:
+  bootstrap: 5
+  params:
+    bootswatch: cosmo
+
+
+reference:
+- title: "Preparing data for and running SLiM"
+  desc: >
+    Functions for preparing inputs to SLiM, and then running them
+    using SLiM.
+- contents:
+  - cumulative_genome_position
+  - simulate_founder_genos
+  - slim_sim_a_dataset
+  - write_input_vcf
+
+- title: "Processing tskit Trees"
+  desc: >
+    Functions that operate on the tskit object created by SLiM, or assist in that
+    process.
+- contents:
+  - ancestral_segs
+  - founder_node_ids_and_pops
+  - get_focal_nodes
+  - indiv_ancestry_tracts
+  - read_and_filter_trees
+  - ts_nodes_and_inds
+
+- title: "Summarizing the processed tskit trees"
+  desc: >
+    Functions for summarizing ancestry and pairwise relationships
+- contents:
+  - admixture_fracts_from_ancestry_tracts
+  - pairwise_relationships
+
+
+
+- title: "Simulating diagnostic markers"
+  desc: >
+    Placing diagnostic marker alleles according to the ancestry segments of individuals
+- contents:
+  - place_diagnostic_markers
+
+
+
+- title: "Plotting utilities"
+  desc: >
+    Functions that makes some useful plots
+- contents:
+  - plot_ancestry_of_genomes
+  - plot_ancestry_tracts
+
+
+
+- title: "VCF files"
+  desc: >
+    Functions to read in the VCF output from the simulation and also to modify
+    and write their contents
+- contents:
+  - slim_vcf2tib
+  - slim_vcfs2tib
+  - tweak_slim_simmed_data
+
+
+- title: "Data sets for examples"
+  desc: >
+    Data sets of allele frequencies, etc. used as examples in the vignettes,
+    or for other illustrative purposes
+- contents:
+  - cyclone_creek_var_freqs
+  - example_indiv_segs
+  - example_spp_diag_markers
+  - mykiss_chroms
+  - slim_sim_dataset_example
+  - wct_rbt_yct_diagnostic_markers
+
+

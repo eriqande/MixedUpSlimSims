@@ -23,6 +23,10 @@ of admixed populations using SLiM, and particularly to collect the results
 in terms of the ancestry tracts within the simulated individuals by way of
 [tskit](https://tskit.dev/).
 
+Because this depends on a lot of non-R dependencies (like python, tskit, etc.)
+and because it uses reticulate under the hood you have to do some work to set
+up the dependencies.
+
 
 ## Installation
 
@@ -33,24 +37,20 @@ You can install the development version of MixedUpSlimSims from [GitHub](https:/
 remotes::install_github("eriqande/MixedUpSlimSims")
 ```
 
-However, in order to use it, you will also have to set up a conda environment,
-and, if you are working on Mac with Apple Silicon (M1 chip or higher) you have to
-compile up some tskit related packages that are not yet available on conda
-for arm64.  (**UPDATE** it looks like kastore is now avaiable on conda for
-arm64, so that simplifies things.)
+In order to use it, you will also have to set up a conda environment.
 
 
 1.  Install a conda environment that includes `slim`, `tskit`, `numpy`, 
-    `pandas`, and `bedtools` and `bcftools`.  Any version of these should work, so I am not
-    specifying versions here. You can name
+    `pandas`, and `bedtools` and `bcftools`.  Most version of these should work,
+    but SLiM has to be version 4. You can name
     this environment anything you want,
     but it will be easiest to name it `mixed-up-parents`.
 
     ```{sh, eval=FALSE}
-    mamba  create -n mixed-up-parents -c conda-forge -c bioconda \
+    conda create -n mixed-up-parents -c conda-forge -c bioconda \
         anaconda::pandas \
         conda-forge::numpy \
-        conda-forge::slim \
+        conda-forge::slim==4.2.2 \
         conda-forge::tskit  \
         bedtools \
         bcftools
@@ -76,10 +76,10 @@ arm64, so that simplifies things.)
     
     ```{sh, eval=FALSE}
     # For MixedUpSlimSims
-    export MUP_CONDA=/Users/eriq/mambaforge-x86_64/envs/mixed-up-parents
+    export MUP_CONDA=/Users/eriq/miniforge/envs/mixed-up-parents
     ```
     
-    You should change `/Users/eriq/mambaforge-x86_64/envs/mixed-up-parents`
+    You should change `/Users/eriq/miniforge/envs/mixed-up-parents`
     to whatever the path is to your `mixed-up-parents` conda environment. 
     
 
@@ -87,3 +87,24 @@ arm64, so that simplifies things.)
 When using this on the cluster, you should activate the conda environment before
 entering R.
 
+In general, when working with this package, you should issue these commands
+in the beginning of your script to make sure that R know where to find things
+(changing the paths as appropriate):
+```r
+options(MUP_CONDA = "/Users/eriq/miniforge3/envs/mixed-up-parents")
+Sys.setenv(MUP_CONDA = "/Users/eriq/miniforge3/envs/mixed-up-parents")
+
+# set paths for python within R
+reticulate::use_condaenv(condaenv = getOption("MUP_CONDA"))
+
+# also set the path for system calls here
+Sys.setenv(PATH = paste0(getOption("MUP_CONDA"), "/bin:", Sys.getenv("PATH")))
+```
+
+## Online Documentation
+
+Be sure to head over to
+[https://eriqande.github.io/MixedUpSlimSims](https://eriqande.github.io/MixedUpSlimSims) for the full
+`pkgdown` documentation. 
+
+A vignette is available there under the "Articles" tab.
