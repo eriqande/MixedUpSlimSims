@@ -16,6 +16,30 @@ tibbles describing ancestry tracts, ancestry fractions, diagnostic
 marker genotypes, and pairwise relationships among simulated
 individuals.
 
+In practice, using the package means bringing a demographic model
+written as a SLiM script, plus enough genetic information to initialize
+or interpret the simulation. The usual workflow is: prepare allele
+frequencies for the source populations; simulate founder genotypes from
+those frequencies and write them to `slim_input.vcf`; run a SLiM script
+that reads those founder genotypes, records tree sequences, and writes
+`SLiM.trees`; and then use MixedUpSlimSims to read the tree sequence,
+identify the sampled individuals and founder lineages, recover
+population-of-origin tracts, and summarize genotypes and ancestry.
+Example SLiM scripts are included in `inst/SLiM-models`; scripts that
+work smoothly with the package should write `SLiM.trees`, and should
+write sampled VCFs with names like `p1-10.vcf` if you want to use the
+VCF-parsing helpers directly.
+
+The functions that use `reticulate` are mostly there to make the `tskit`
+pieces available from R. For example, `read_and_filter_trees()` loads
+and simplifies a tree sequence for the populations and times you
+request, `ts_nodes_and_inds()` turns `tskit` nodes and individuals into
+R tibbles, and `ancestral_segs()` uses `tskit` ancestry-linking
+machinery to recover the genomic segments inherited from founder
+populations. Higher-level helpers, especially `slim_sim_a_dataset()`,
+combine many of these steps, but users still need to provide a SLiM
+model and inputs that match the assumptions of that model.
+
 This package is intended to be installed from GitHub, not CRAN. It
 deliberately uses `reticulate` and command-line tools such as SLiM,
 `bedtools`, and `bcftools`, so users need to set up a compatible conda
@@ -108,21 +132,6 @@ developer but fragile for everyone else, because R will silently use the
 wrong path when the project is opened on another machine. If you want
 local convenience settings, put them in your user-level R startup files
 or create an untracked `.Rprofile` on your own machine.
-
-## Typical Workflow
-
-The package includes functions for:
-
-- creating founder genotypes from allele frequencies;
-- running SLiM models and reading their `.trees` output;
-- using `tskit` through `reticulate` to identify nodes, individuals, and
-  ancestry segments;
-- summarizing individual ancestry tracts and admixture fractions;
-- extracting marker genotypes from SLiM VCF output; and
-- assembling simulated data sets for downstream analysis.
-
-The package vignette shows a longer worked example using the included
-example allele-frequency data and SLiM model.
 
 ## Online Documentation
 
