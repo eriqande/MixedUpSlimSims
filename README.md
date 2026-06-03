@@ -74,7 +74,7 @@ When using this on the cluster, you should activate the conda
 environment before entering R.
 
 In general, when working with this package, you should issue these
-commands in the beginning of your script to make sure that R know where
+commands in the beginning of your script to make sure that R knows where
 to find things (changing the paths as appropriate):
 
 ``` r

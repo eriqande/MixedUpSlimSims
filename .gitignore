@@ -12,3 +12,4 @@ default.profraw
 /*.vcf
 /*.trees
 inst/doc
+.positai
