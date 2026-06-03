@@ -55,19 +55,25 @@
 </h1></div>
 <!-- badges: start -->
 <!-- badges: end -->
-<p>MixedUpSlimSims is an R package to facilitate simulations of admixed populations using SLiM, and particularly to collect the results in terms of the ancestry tracts within the simulated individuals by way of <a href="https://tskit.dev/" class="external-link">tskit</a>.</p>
-<p>Because this depends on a lot of non-R dependencies (like python, tskit, etc.) and because it uses reticulate under the hood you have to do some work to set up the dependencies.</p>
+<p>MixedUpSlimSims is an R package for simulating admixed populations with <a href="https://messerlab.org/slim/" class="external-link">SLiM</a> and then processing the resulting tree sequences and genotypes in R. Its main use is to run SLiM simulations, simplify and inspect the resulting <a href="https://tskit.dev/" class="external-link">tskit</a> tree sequences through Python, and return R tibbles describing ancestry tracts, ancestry fractions, diagnostic marker genotypes, and pairwise relationships among simulated individuals.</p>
+<p>In practice, using the package means bringing a demographic model written as a SLiM script, plus enough genetic information to initialize or interpret the simulation. The usual workflow is: prepare allele frequencies for the source populations; simulate founder genotypes from those frequencies and write them to <code>slim_input.vcf</code>; run a SLiM script that reads those founder genotypes, records tree sequences, and writes <code>SLiM.trees</code>; and then use MixedUpSlimSims to read the tree sequence, identify the sampled individuals and founder lineages, recover population-of-origin tracts, and summarize genotypes and ancestry. Example SLiM scripts are included in <code>inst/SLiM-models</code>; scripts that work smoothly with the package should write <code>SLiM.trees</code>, and should write sampled VCFs with names like <code>p1-10.vcf</code> if you want to use the VCF-parsing helpers directly.</p>
+<p>The functions that use <code>reticulate</code> are mostly there to make the <code>tskit</code> pieces available from R. For example, <code><a href="reference/read_and_filter_trees.html">read_and_filter_trees()</a></code> loads and simplifies a tree sequence for the populations and times you request, <code><a href="reference/ts_nodes_and_inds.html">ts_nodes_and_inds()</a></code> turns <code>tskit</code> nodes and individuals into R tibbles, and <code><a href="reference/ancestral_segs.html">ancestral_segs()</a></code> uses <code>tskit</code> ancestry-linking machinery to recover the genomic segments inherited from founder populations. Higher-level helpers, especially <code><a href="reference/slim_sim_a_dataset.html">slim_sim_a_dataset()</a></code>, combine many of these steps, but users still need to provide a SLiM model and inputs that match the assumptions of that model.</p>
+<p>This package is intended to be installed from GitHub, not CRAN. It deliberately uses <code>reticulate</code> and command-line tools such as SLiM, <code>bedtools</code>, and <code>bcftools</code>, so users need to set up a compatible conda environment before using the simulation and tree-processing functions.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the development version of MixedUpSlimSims from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
+<p>Install the R package from GitHub:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"eriqande/MixedUpSlimSims"</span><span class="op">)</span></span></code></pre></div>
-<p>In order to use it, you will also have to set up a conda environment.</p>
+</div>
+<div class="section level2">
+<h2 id="external-dependencies">External Dependencies<a class="anchor" aria-label="anchor" href="#external-dependencies"></a>
+</h2>
+<p>MixedUpSlimSims expects a conda environment that contains the Python and command-line dependencies used by the package.</p>
 <ol style="list-style-type: decimal">
 <li>
-<p>Install a conda environment that includes <code>slim</code>, <code>tskit</code>, <code>numpy</code>, <code>pandas</code>, and <code>bedtools</code> and <code>bcftools</code>. Most version of these should work, but SLiM has to be version 4. You can name this environment anything you want, but it will be easiest to name it <code>mixed-up-parents</code>.</p>
+<p>Create a conda environment containing <code>slim</code>, <code>tskit</code>, <code>numpy</code>, <code>pandas</code>, <code>bedtools</code>, and <code>bcftools</code>. Most recent versions should work, but SLiM should be version 4. The environment can have any name; the examples below use <code>mixed-up-parents</code>.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-n</span> mixed-up-parents <span class="at">-c</span> conda-forge <span class="at">-c</span> bioconda <span class="dt">\</span></span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>    anaconda::pandas <span class="dt">\</span></span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>    conda-forge::numpy <span class="dt">\</span></span>
@@ -77,29 +83,40 @@
 <span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>    bcftools</span></code></pre></div>
 </li>
 <li>
-<p><strong>On SEDNA:</strong> If you are working on the SEDNA cluster, after you have installed the above conda environment, you have to do an additional step to keep pandas from failing when looking for a version of GLIBCXX that does not exist on the system:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="ex">conda</span> activate mixed-up-parents  <span class="co"># activate the environment</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="ex">pip</span> install pandas <span class="at">--no-cache-dir</span> <span class="at">--force-reinstall</span>  <span class="co"># reinstall pandas in there</span></span></code></pre></div>
-<p>You should not have to do this unless you get errors that look like: <code>ImportError: /lib64/libstdc++.so.6: version 'GLIBCXX_3.4.29' not found</code></p>
+<p>Find the full path to the environment.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="ex">conda</span> env list</span></code></pre></div>
 </li>
 <li>
-<p>Update your <code>~/.bashrc</code> (or whatever file you use to initialize your shell) to export the path to the conda environment you just installed as the environment variable <code>MUP_CONDA</code>. My <code>~/.bashrc</code> includes the lines: this:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># For MixedUpSlimSims</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="bu">export</span> <span class="va">MUP_CONDA</span><span class="op">=</span>/Users/eriq/miniforge/envs/mixed-up-parents</span></code></pre></div>
-<p>You should change <code>/Users/eriq/miniforge/envs/mixed-up-parents</code> to whatever the path is to your <code>mixed-up-parents</code> conda environment.</p>
+<p>Export that path as <code>MUP_CONDA</code> in the shell startup file you normally use for R sessions, such as <code>~/.bashrc</code>, <code>~/.zshrc</code>, or a scheduler/cluster job script.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># For MixedUpSlimSims. Change this path to your own conda environment.</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="bu">export</span> <span class="va">MUP_CONDA</span><span class="op">=</span>/path/to/miniforge3/envs/mixed-up-parents</span></code></pre></div>
+<p>Restart your shell or run <code>source ~/.bashrc</code> / <code>source ~/.zshrc</code> after editing the file.</p>
+</li>
+<li>
+<p><strong>On SEDNA:</strong> If you are working on the SEDNA cluster, you may also need to reinstall <code>pandas</code> inside the environment to avoid a system <code>GLIBCXX</code> error:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="ex">conda</span> activate mixed-up-parents  <span class="co"># activate the environment</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="ex">pip</span> install pandas <span class="at">--no-cache-dir</span> <span class="at">--force-reinstall</span>  <span class="co"># reinstall pandas in there</span></span></code></pre></div>
+<p>You should not have to do this unless you get errors that look like: <code>ImportError: /lib64/libstdc++.so.6: version 'GLIBCXX_3.4.29' not found</code></p>
 </li>
 </ol>
-<p>When using this on the cluster, you should activate the conda environment before entering R.</p>
-<p>In general, when working with this package, you should issue these commands in the beginning of your script to make sure that R know where to find things (changing the paths as appropriate):</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>MUP_CONDA <span class="op">=</span> <span class="st">"/Users/eriq/miniforge3/envs/mixed-up-parents"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>MUP_CONDA <span class="op">=</span> <span class="st">"/Users/eriq/miniforge3/envs/mixed-up-parents"</span><span class="op">)</span></span>
+</div>
+<div class="section level2">
+<h2 id="starting-an-r-session">Starting an R Session<a class="anchor" aria-label="anchor" href="#starting-an-r-session"></a>
+</h2>
+<p>In any script or interactive session that uses the Python-backed functions, set up <code>reticulate</code> before Python is initialized:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rstudio.github.io/reticulate/" class="external-link">reticulate</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">MixedUpSlimSims</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># set paths for python within R</span></span>
-<span><span class="fu">reticulate</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/reticulate/reference/use_python.html" class="external-link">use_condaenv</a></span><span class="op">(</span>condaenv <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"MUP_CONDA"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">mup_conda</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"MUP_CONDA"</span><span class="op">)</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="va">mup_conda</span> <span class="op">==</span> <span class="st">""</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Set MUP_CONDA to the full path of your MixedUpSlimSims conda environment."</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># also set the path for system calls here</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>PATH <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"MUP_CONDA"</span><span class="op">)</span>, <span class="st">"/bin:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"PATH"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">reticulate</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/reticulate/reference/use_python.html" class="external-link">use_condaenv</a></span><span class="op">(</span><span class="va">mup_conda</span>, required <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>PATH <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">mup_conda</span>, <span class="st">"bin"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"PATH"</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">":"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>On a cluster, it is also fine to activate the conda environment before starting R, but <code>MUP_CONDA</code> should still be defined so scripts can consistently locate the same environment.</p>
+<p>There is intentionally no repository-level <code>.Rprofile</code> in this package. A local <code>.Rprofile</code> with a hard-coded conda path is convenient for one developer but fragile for everyone else, because R will silently use the wrong path when the project is opened on another machine. If you want local convenience settings, put them in your user-level R startup files or create an untracked <code>.Rprofile</code> on your own machine.</p>
 </div>
 <div class="section level2">
 <h2 id="online-documentation">Online Documentation<a class="anchor" aria-label="anchor" href="#online-documentation"></a>
