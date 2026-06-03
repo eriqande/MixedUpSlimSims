@@ -28,9 +28,9 @@ start really testing out our methods.
 ## Initial set up
 
 See the package README about configuring your system to be able to run this.
-The main issue is to define the `MUP_CONDA` path as both an R option and a
-system (Unix/Linux) environment variable.  Note that this is done in the code
-here since Rmarkdown seems to not read the `.Rprofile`.
+The main issue is to define the `MUP_CONDA` path as a system (Unix/Linux)
+environment variable and then tell `reticulate` to use that environment before
+Python is initialized.
 
 After that you can get started.
 
@@ -41,18 +41,13 @@ library(MixedUpSlimSims)
 library(CKMRpop)  # this is necessary to use the MixedUpSlimSims::pairwise_relationship()
                   # until I fix how data get loaded in CKMRpop.
 
-# The user should set the value of MUP_CONDA to point to the conda
-# environment with all the things needed.
-options(MUP_CONDA = "/Users/eriq/miniforge3/envs/mixed-up-parents")
-Sys.setenv(MUP_CONDA = "/Users/eriq/miniforge3/envs/mixed-up-parents")
+mup_conda <- Sys.getenv("MUP_CONDA")
+if (mup_conda == "") {
+  stop("Set MUP_CONDA to the full path of your MixedUpSlimSims conda environment.")
+}
 
-
-# set paths for python within R
-reticulate::use_condaenv(condaenv = getOption("MUP_CONDA"))
-
-
-# also set the path for system calls here
-Sys.setenv(PATH = paste0(getOption("MUP_CONDA"), "/bin:", Sys.getenv("PATH")))
+reticulate::use_condaenv(mup_conda, required = TRUE)
+Sys.setenv(PATH = paste(file.path(mup_conda, "bin"), Sys.getenv("PATH"), sep = ":"))
 ```
 
 
@@ -460,21 +455,3 @@ sim_results <- list(
 write_rds(sim_results, file = "results/004/sim_results.rds", compress = "xz")
 ```
 
-
-## Side note about development
-
-As a side note.  For development, so that I still have the right
-condaenv after building and relaoding the package in RStudio, I
-have an uncommitted file called `R/onLoad.R` that has these contents:
-```{.r}
-# # global references to python modules (will be initialized in .onLoad)
-
-
-.onLoad <- function(libname, pkgname) {
-  reticulate::use_condaenv(condaenv = Sys.getenv("MUP_CONDA"))
-}
-
-```
-
-And I have an environment variable in my .bashrc called MUP_CONDA
-that points to the right spot.

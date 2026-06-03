@@ -1,5 +1,6 @@
 ^MixedUpSlimSims\.Rproj$
 ^\.Rproj\.user$
+^\.Rprofile$
 ^LICENSE\.md$
 ^default\.profraw$
 ^__pycache__$
