@@ -2,8 +2,20 @@ Package: MixedUpSlimSims
 Title: R Utilities for Running SLiM and Processing tskit Trees
 Version: 0.0.1
 Authors@R: c(
-    person(given = c("Eric", "C."), family = "Anderson", email ="eriq@rams.colostate.edu", role = c("aut", "cre")),
-    person(given = c("Jared"), family = "Grummer", email ="jared.grummer@flbs.umt.edu", role = c("aut"))
+    person(
+      given = c("Eric", "C."), 
+      family = "Anderson",
+      email ="eriq@rams.colostate.edu",
+      role = c("aut", "cre"), 
+      comment = c(ORCID = "0000-0003-1326-0840")
+    ),
+    person(
+      given = c("Jared"),
+      family = "Grummer",
+      email ="jared.grummer@flbs.umt.edu",
+      role = c("aut"),
+      comment = c(ORCID = "0000-0003-3627-0769")
+    )
   )
 Description: R utilities for running SLiM and processing tskit trees, used to simulate anestry tracts in hybridizing species.
 License: CC0
